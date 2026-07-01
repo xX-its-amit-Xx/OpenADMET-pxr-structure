@@ -1,0 +1,1752 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenADMET PXR Structure - Final Pixel Report</title>
+  <style>
+    :root {
+      --bg: #0b0b12;
+      --panel: #171821;
+      --panel-2: #202233;
+      --ink: #f7f1db;
+      --muted: #b8b2a2;
+      --cyan: #00e5ff;
+      --pink: #ff3d81;
+      --green: #50fa7b;
+      --yellow: #ffe66d;
+      --orange: #ff9f1c;
+      --red: #ff5a5f;
+      --line: #3f4256;
+      --shadow: #000000;
+      --radius: 6px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: 18px 18px;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      line-height: 1.62;
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 50%, rgba(0, 0, 0, 0.04) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      border-bottom: 2px solid rgba(0, 229, 255, 0.45);
+    }
+
+    a:hover {
+      color: var(--yellow);
+      border-bottom-color: var(--yellow);
+    }
+
+    code,
+    pre,
+    .mono,
+    .kicker,
+    .metric-label,
+    table,
+    .pill,
+    .step-number {
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 18px;
+      border: 2px solid var(--line);
+      background: #090a0f;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 11, 18, 0.94);
+      border-bottom: 3px solid var(--cyan);
+      box-shadow: 0 5px 0 var(--shadow);
+    }
+
+    .nav {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 10px 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      overflow-x: auto;
+    }
+
+    .nav a {
+      white-space: nowrap;
+      color: var(--ink);
+      border: 2px solid var(--line);
+      background: var(--panel);
+      padding: 8px 10px;
+      box-shadow: 3px 3px 0 var(--shadow);
+      font-size: 13px;
+    }
+
+    .nav a:hover {
+      color: var(--bg);
+      background: var(--yellow);
+      border-color: var(--yellow);
+    }
+
+    .hero {
+      border-bottom: 4px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0, 229, 255, 0.12) 0 2px, transparent 2px 24px),
+        linear-gradient(0deg, rgba(255, 61, 129, 0.10) 0 2px, transparent 2px 24px),
+        #10111b;
+    }
+
+    .hero-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 64px 18px 42px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+      gap: 34px;
+      align-items: end;
+    }
+
+    .kicker {
+      display: inline-block;
+      color: var(--bg);
+      background: var(--green);
+      border: 3px solid var(--ink);
+      padding: 5px 8px;
+      box-shadow: 4px 4px 0 var(--shadow);
+      text-transform: uppercase;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin-top: 20px;
+      max-width: 780px;
+      font-size: clamp(42px, 8vw, 96px);
+      text-transform: uppercase;
+      text-shadow:
+        4px 4px 0 var(--shadow),
+        7px 7px 0 rgba(255, 61, 129, 0.5);
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(18px, 2vw, 24px);
+    }
+
+    .hero-note {
+      margin-top: 18px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .scorebox {
+      border: 4px solid var(--ink);
+      background: var(--panel);
+      box-shadow: 10px 10px 0 var(--shadow);
+      padding: 18px;
+    }
+
+    .score-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .score-title strong {
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 96px;
+      padding: 12px;
+      border: 2px solid var(--line);
+      background: #11131d;
+      box-shadow: 4px 4px 0 var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 6px;
+      color: var(--ink);
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .metric:nth-child(1) .metric-value { color: var(--green); }
+    .metric:nth-child(2) .metric-value { color: var(--cyan); }
+    .metric:nth-child(3) .metric-value { color: var(--yellow); }
+    .metric:nth-child(4) .metric-value { color: var(--pink); }
+
+    main {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 34px 18px 72px;
+    }
+
+    section {
+      margin: 44px 0;
+      padding: 34px 0 0;
+      border-top: 4px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+      gap: 26px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .section-tag {
+      color: var(--bg);
+      background: var(--pink);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--shadow);
+      padding: 5px 8px;
+      display: inline-block;
+      width: max-content;
+      text-transform: uppercase;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    h2 {
+      margin-top: 14px;
+      font-size: clamp(30px, 5vw, 58px);
+      text-transform: uppercase;
+      text-shadow: 3px 3px 0 var(--shadow);
+    }
+
+    .section-lede {
+      color: var(--muted);
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .callout {
+      border: 3px solid var(--yellow);
+      background: #18160e;
+      box-shadow: 7px 7px 0 var(--shadow);
+      padding: 20px;
+      margin: 22px 0;
+    }
+
+    .callout strong {
+      color: var(--yellow);
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      border: 3px solid var(--line);
+      background: var(--panel);
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      font-size: 22px;
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+      padding: 22px 0;
+      border-bottom: 2px dashed var(--line);
+    }
+
+    .step:last-child {
+      border-bottom: 0;
+    }
+
+    .step-number {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      color: var(--bg);
+      background: var(--cyan);
+      border: 3px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--shadow);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--green);
+      text-transform: uppercase;
+    }
+
+    .step p {
+      margin: 0 0 10px;
+      color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-block;
+      border: 2px solid var(--line);
+      background: #0f1018;
+      color: var(--ink);
+      padding: 5px 8px;
+      box-shadow: 3px 3px 0 var(--shadow);
+      font-size: 13px;
+    }
+
+    .pill.good { border-color: var(--green); color: var(--green); }
+    .pill.warn { border-color: var(--yellow); color: var(--yellow); }
+    .pill.bad { border-color: var(--red); color: var(--red); }
+    .pill.info { border-color: var(--cyan); color: var(--cyan); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 3px solid var(--line);
+      background: #11131d;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      margin: 18px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--bg);
+      background: var(--cyan);
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    td.good { color: var(--green); font-weight: 800; }
+    td.warn { color: var(--yellow); font-weight: 800; }
+    td.bad { color: var(--red); font-weight: 800; }
+
+    .bar-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr) 44px;
+      gap: 10px;
+      align-items: center;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    .bar-track {
+      height: 18px;
+      border: 2px solid var(--line);
+      background: #090a0f;
+      position: relative;
+      box-shadow: 3px 3px 0 var(--shadow);
+    }
+
+    .bar-fill {
+      height: 100%;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--green) 0 8px,
+          var(--cyan) 8px 16px,
+          var(--yellow) 16px 24px,
+          var(--pink) 24px 32px
+        );
+    }
+
+    .experiment {
+      border-left: 8px solid var(--line);
+      padding: 18px 18px 18px 22px;
+      background: var(--panel);
+      box-shadow: 6px 6px 0 var(--shadow);
+      margin: 18px 0;
+      border-radius: var(--radius);
+    }
+
+    .experiment.win { border-left-color: var(--green); }
+    .experiment.near { border-left-color: var(--yellow); }
+    .experiment.kill { border-left-color: var(--red); }
+    .experiment.hold { border-left-color: var(--cyan); }
+
+    .experiment h3 {
+      color: var(--ink);
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .logic-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .logic-cell {
+      border: 2px solid var(--line);
+      background: #10121c;
+      padding: 12px;
+      min-height: 132px;
+    }
+
+    .logic-cell strong {
+      display: block;
+      color: var(--cyan);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .logic-cell p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    figure {
+      margin: 0;
+      border: 3px solid var(--line);
+      background: #f4f0df;
+      color: #101010;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: auto;
+    }
+
+    figcaption {
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #282828;
+      background: #fff8d1;
+      border-top: 2px solid #111111;
+    }
+
+    .repo-map {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .repo-tile {
+      border: 3px solid var(--line);
+      min-height: 116px;
+      padding: 12px;
+      background: #12141e;
+      box-shadow: 4px 4px 0 var(--shadow);
+    }
+
+    .repo-tile b {
+      display: block;
+      color: var(--yellow);
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .repo-tile span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .footer {
+      max-width: var(--max);
+      margin: 0 auto 32px;
+      padding: 20px 18px;
+      color: var(--muted);
+      border-top: 4px solid var(--line);
+    }
+
+    @media (max-width: 960px) {
+      .hero-inner,
+      .section-head,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .figure-grid,
+      .logic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .score-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hero-inner {
+        padding-top: 42px;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-map {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav" aria-label="Report sections">
+      <a href="#cold-open">Cold Open</a>
+      <a href="#campaign-flow">Flow</a>
+      <a href="#final-method">Final Method</a>
+      <a href="#validation">Validation</a>
+      <a href="#compute">Compute</a>
+      <a href="#experiments">Experiments</a>
+      <a href="#failure">Why It Fell Short</a>
+      <a href="#repo-map">Repo Map</a>
+      <a href="#reproduce">Reproduce</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="kicker">OpenADMET PXR Structure Track</span>
+        <h1>Final Submission, Pixel Edition</h1>
+        <p class="subtitle">
+          A reason-guided, late-night lab report on why the best entry was not the
+          loudest ensemble in the room. It was calibrated model confidence, one
+          small Protenix rescue, and a lot of experiments told politely to leave.
+        </p>
+        <p class="hero-note">
+          Final protected artifact: <code>submissions/prot_rescue8.zip</code>.
+          Local evidence snapshot: 2026-06-30.
+        </p>
+      </div>
+
+      <aside class="scorebox" aria-label="Score summary">
+        <div class="score-title">
+          <strong>Tonight's Scoreboard</strong>
+          <span class="mono">ranked run</span>
+        </div>
+        <div class="score-grid">
+          <div class="metric">
+            <div class="metric-label">Best LDDT-PLI</div>
+            <div class="metric-value">0.5640</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Best rank</div>
+            <div class="metric-value">2</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Gap to leader</div>
+            <div class="metric-value">0.0085</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Final swap count</div>
+            <div class="metric-value">8</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <main>
+    <section id="cold-open">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Cold Open</span>
+          <h2>The one sentence version</h2>
+        </div>
+        <p class="section-lede">
+          The final answer was a 4-model z-hybrid base, then Protenix-v2 only on
+          the 8 ligands where the base ensemble was least confident.
+        </p>
+      </div>
+
+      <div class="callout">
+        <strong>Takeaway:</strong> The winning pattern was not "ensemble
+        everything." It was "let each model compete on its own calibrated signal,
+        then rescue only the low-confidence tail." Full-model expansion, hand
+        chemistry, physics rescoring, and agentic reasoning all had the same
+        tragic talk-show arc: exciting entrance, poor transfer, quick exit.
+      </div>
+
+      <div class="grid-4">
+        <article class="card">
+          <h3>Challenge</h3>
+          <p>Predict 184 PXR protein-ligand complexes as PDBs, scored by LDDT-PLI.</p>
+        </article>
+        <article class="card">
+          <h3>Core signal</h3>
+          <p>Within-model confidence, z-scored across ligands so AF3, Boltz, OF3, and Chai can be compared.</p>
+        </article>
+        <article class="card">
+          <h3>Actual lift</h3>
+          <p>Targeted Protenix rescue peaked at 8 swaps: 0.5640 LDDT-PLI.</p>
+        </article>
+        <article class="card">
+          <h3>Wall</h3>
+          <p>Selection without ground truth. Many plausible poses were not native poses.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="campaign-flow">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Main Plot</span>
+          <h2>The campaign arc</h2>
+        </div>
+        <p class="section-lede">
+          Read the project in this order. The repo has hundreds of scripts, but
+          the scientific story is a clean sequence: fair ensemble, long-tail
+          rescue, then increasingly ambitious ways to improve the hard cases.
+        </p>
+      </div>
+
+      <div class="callout">
+        <strong>The real flow:</strong> first make every model compete on a fair
+        z-scored axis; then identify the low-confidence long tail; then try to
+        generate, condition, refine, or learn your way out of that tail. The
+        final score says the first two moves worked, and the later moves mostly
+        taught us what kind of new data would be needed.
+      </div>
+
+      <div class="step">
+        <div class="step-number">01</div>
+        <div>
+          <h3>Ensemble every useful model with z-hybrid</h3>
+          <p>
+            The first winning move was not a handcrafted pose rule. It was a
+            calibrated model tournament: score each model internally, z-score its
+            confidence across the 184 ligands, then let the highest-z model win
+            per ligand. This made AF3, Boltz-2, OpenFold3, and Chai comparable
+            without pretending their raw confidence numbers meant the same thing.
+          </p>
+          <p>
+            The important caveat: "add every model as a full member" was tested
+            and refuted. Protenix/IntFold-style full z-hybrid expansion could
+            over-select confident wrong poses. The winning ensemble used broad
+            model diversity as a base, then applied new models surgically.
+          </p>
+          <div class="pill-row">
+            <span class="pill good">Worked: calibrated 4-model base</span>
+            <span class="pill bad">Refuted: un-gated full expansion</span>
+            <span class="pill info">Lesson: model confidence needs local calibration</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">02</div>
+        <div>
+          <h3>Target the long tail</h3>
+          <p>
+            Once the base was stable, the next question was not "can we change
+            all 184?" It was "where does the ensemble itself admit it is weak?"
+            Ranking ligands by low pool z-score exposed the failure tail. Swapping
+            that tail to Protenix-v2 created the best submission.
+          </p>
+          <p>
+            The bracket mattered: 4 swaps undershot, 12 and 20 swaps overreached,
+            and 8 swaps peaked at 0.5640. The long tail was real, but it was not
+            an invitation to renovate the entire house on live television.
+          </p>
+          <div class="pill-row">
+            <span class="pill good">Final: 8 Protenix swaps</span>
+            <span class="pill warn">12 swaps: close but lower</span>
+            <span class="pill bad">20 swaps: over-swap</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">03</div>
+        <div>
+          <h3>Try fine-tuning and new cofolder variants</h3>
+          <p>
+            After the tail-rescue win, the natural next move was model improvement:
+            OF3 fine-tuning, Protenix/NR-family fine-tuning, IntFold variants,
+            and harvested new-model pools. These were aimed at raising the
+            generation floor, not merely reshuffling the same old poses.
+          </p>
+          <p>
+            The live competition work did not produce a better final artifact.
+            The post-competition path is clearer: combinatorial fine-tuning across
+            nuclear receptors, all promiscuous-binder systems, and SAIR-style
+            public cofold corpora could create the missing PXR/NR-specific prior.
+          </p>
+          <div class="pill-row">
+            <span class="pill info">Tried: OF3/IntFold/Protenix variants</span>
+            <span class="pill warn">Needed: NR-family labels</span>
+            <span class="pill warn">Wanted: SAIR subset fine-tune</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">04</div>
+        <div>
+          <h3>Try templating and constraints</h3>
+          <p>
+            Next came the biology-informed levers: PXR holo templates, CAR/VDR/NR
+            templates, soft pocket constraints, corrected protonation states, and
+            targeted anchor restraints for hard-tail ligands. The idea was sound:
+            give the model more receptor-family context and better chemical state.
+          </p>
+          <p>
+            The result was humbling. Generic anchors and templates often hurt
+            PanDDA fragments because fragments explore sub-pockets that drug-like
+            holo priors do not cover. Constraints are useful when the anchor is
+            known; without ground truth, they can turn a weak prior into a very
+            confident wrong answer.
+          </p>
+          <div class="pill-row">
+            <span class="pill bad">Hard-tail restraints regressed</span>
+            <span class="pill warn">Templates need family-specific GT</span>
+            <span class="pill info">Correct protonation remains a useful pool lever</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">05</div>
+        <div>
+          <h3>Try shallow/selective MSA</h3>
+          <p>
+            MSA depth became a separate hypothesis: too much evolutionary context
+            might lock the receptor into a familiar state, while shallow or
+            selective MSA could let ligand chemistry drive induced-fit placement.
+            ESMFold2 and Boltz-style MSA variants were the practical tests.
+          </p>
+          <p>
+            Full-MSA ESMFold2 was weak as a standalone model and weaker than
+            Protenix as an 8-ligand rescuer. The idea remains scientifically
+            plausible, but the useful version would need systematic shallow,
+            selective, and per-family MSA sweeps with enough submission or GT
+            bandwidth to separate signal from noise.
+          </p>
+          <div class="pill-row">
+            <span class="pill bad">ESMFold2 full standalone: 0.5264</span>
+            <span class="pill warn">ESMFold2 rescue8: 0.5610</span>
+            <span class="pill info">Next: selective MSA sweep</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">06</div>
+        <div>
+          <h3>Try local refinement, induced fit, and MD</h3>
+          <p>
+            Local refinement was the "surely physics can polish this" phase:
+            OpenMM minimization/MD, docking-style local refinement, MMFF/xTB
+            strain checks, orientation fixes, and induced-fit ideas. These were
+            tested as correction layers on top of model poses.
+          </p>
+          <p>
+            The consistent read was that local physics can validate or reject
+            broken geometry, but it did not reliably move an unlabeled pose into
+            the native binding mode. If the ligand starts in the wrong basin,
+            refinement mostly makes the wrong basin look tidier.
+          </p>
+          <div class="pill-row">
+            <span class="pill bad">MD/refinement: no leaderboard lift</span>
+            <span class="pill bad">MMFF strain gate failed</span>
+            <span class="pill info">Use as QC, not primary selection</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">07</div>
+        <div>
+          <h3>Try custom pose selectors</h3>
+          <p>
+            The final major axis was learned or reasoning-based selection:
+            XGBoost/LambdaMART pose scoring, RMSD-Pred, agentic pool selection,
+            medchem annotations, SAR-informed review, and conservative flip
+            filters. This directly attacked the selection wall.
+          </p>
+          <p>
+            Broad selectors failed on transfer. The learned scorer scored 0.4762;
+            the full agentic pool selector scored 0.5140. The smaller, conservative
+            annotation and flip filters nearly matched the best but did not beat it.
+            Translation: medchem reasoning is valuable as a small gate, but not as
+            a full replacement for model confidence without released GT.
+          </p>
+          <div class="pill-row">
+            <span class="pill bad">Pose scorer: 0.4762</span>
+            <span class="pill bad">Agentic pool: 0.5140</span>
+            <span class="pill warn">Filtered flips: 0.5627</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">08</div>
+        <div>
+          <h3>What was left on the board</h3>
+          <p>
+            The remaining credible path was not another clever one-off selector.
+            It was more and better generation: massive sampling, more recycling,
+            model heads that learn PXR/NR-specific ligand-interface quality, and
+            training runs that incorporate affinity data plus medchem annotations
+            as auxiliary supervision.
+          </p>
+          <p>
+            The dream version: AF3-style custom heads for PXR/NR, combinatorial
+            fine-tuning across all nuclear receptors and promiscuous binders, and
+            SAIR-derived public cofold data filtered to receptor-family relevance.
+            That is how you attack the 0.0085 gap to the leader without asking
+            unlabeled chemistry to do crystal-structure magic tricks at 2 a.m.
+          </p>
+          <div class="pill-row">
+            <span class="pill info">More sampling</span>
+            <span class="pill info">More recycling</span>
+            <span class="pill info">Affinity aux-heads</span>
+            <span class="pill info">Medchem supervision</span>
+            <span class="pill info">NR + SAIR fine-tuning</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="final-method">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">The Bit That Worked</span>
+          <h2>Final submission logic</h2>
+        </div>
+        <p class="section-lede">
+          Here is the exact logic of <code>prot_rescue8</code>, with the jokes
+          wearing lab goggles and staying inside the confidence interval.
+        </p>
+      </div>
+
+      <div class="step">
+        <div class="step-number">01</div>
+        <div>
+          <h3>Build a diverse pose pool</h3>
+          <p>
+            The repo assembled candidate poses for each of the 184 blinded ligands
+            from multiple cofolders: AF3, Boltz-2, OpenFold3, Chai-1, Protenix-v2,
+            ESMFold2, IntFold, and several later rescue variants. The final base
+            used four sources: AF3, Boltz-2, OpenFold3, and Chai.
+          </p>
+          <div class="pill-row">
+            <span class="pill info">B2: 184 ligands</span>
+            <span class="pill info">OF3: 184 ligands</span>
+            <span class="pill info">AF3: ranked best poses</span>
+            <span class="pill info">Chai: ranked best poses</span>
+            <span class="pill warn">Protenix: rescue only</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">02</div>
+        <div>
+          <h3>Pick the best pose within each model</h3>
+          <p>
+            Before models competed against each other, each model chose its own
+            best candidate. Boltz-2 used negative <code>complex_ipde</code>,
+            OpenFold3 used pocket-to-ligand PAE or interface confidence, and
+            AF3/Chai used their ranking/interface confidence fields.
+          </p>
+          <p>
+            This matters because raw confidence scales are not interchangeable.
+            One model's "confident" can be another model's polite shrug wearing
+            a tuxedo.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">03</div>
+        <div>
+          <h3>Z-score within each model</h3>
+          <p>
+            The method z-scored each model's best-pose confidence across all 184
+            ligands. That converted each model into a relative signal: "how good
+            does this ligand look compared with this same model's usual behavior?"
+          </p>
+          <p>
+            In <code>ai_4model_base_selection.csv</code>, the base picks were
+            balanced: AF3 won 44 ligands, Boltz-2 won 34, OpenFold3 won 54, and
+            Chai won 52. No single model got to host the entire show.
+          </p>
+          <div class="bar-list" aria-label="Base model win distribution">
+            <div class="bar-row"><span>AF3</span><div class="bar-track"><div class="bar-fill" style="width: 81.5%"></div></div><span>44</span></div>
+            <div class="bar-row"><span>B2</span><div class="bar-track"><div class="bar-fill" style="width: 63.0%"></div></div><span>34</span></div>
+            <div class="bar-row"><span>OF3</span><div class="bar-track"><div class="bar-fill" style="width: 100%"></div></div><span>54</span></div>
+            <div class="bar-row"><span>CHAI</span><div class="bar-track"><div class="bar-fill" style="width: 96.3%"></div></div><span>52</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">04</div>
+        <div>
+          <h3>Select by highest cross-model z-score</h3>
+          <p>
+            For each ligand, the final base kept the pose from whichever of the
+            four base models had the highest calibrated confidence. This was the
+            disciplined ensemble: winner-take-one per ligand, not averaging
+            coordinates or voting by vibes.
+          </p>
+          <p>
+            Key scripts:
+            <a href="../scripts/build_nmodel_zhybrid.py"><code>scripts/build_nmodel_zhybrid.py</code></a>
+            and
+            <a href="../scripts/build_ai_4model_zhybrid.py"><code>scripts/build_ai_4model_zhybrid.py</code></a>.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">05</div>
+        <div>
+          <h3>Find the failure tail</h3>
+          <p>
+            The base model's own uncertainty exposed the weak spots. For every
+            ligand, compute the max z-score available from the four base models.
+            Low max z-score means "every base model is squinting at this one."
+          </p>
+          <p>
+            The bottom 8 were:
+            <code>x00035-1</code>, <code>x00242-1</code>, <code>x00337-1</code>,
+            <code>x00558-1</code>, <code>x00990-1</code>, <code>x01131-1</code>,
+            <code>x01334-1</code>, and <code>x01438-1</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">06</div>
+        <div>
+          <h3>Swap only those 8 to Protenix-v2</h3>
+          <p>
+            <code>build_prot_rescue.py</code> copied the 4-model base for 176
+            ligands and replaced only the 8 lowest-confidence ligands with the
+            corresponding Protenix-v2 best pose. That is the whole secret sauce:
+            tiny targeted intervention, not a full Protenix takeover.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Protenix swaps</th>
+                  <th>Submission</th>
+                  <th>LDDT-PLI</th>
+                  <th>Read</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>4</td>
+                  <td><code>prot_rescue4</code></td>
+                  <td>0.5578</td>
+                  <td>Undershot the tail.</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td><code>prot_rescue8</code></td>
+                  <td class="good">0.5640</td>
+                  <td>Peak. The bouncer finally found the correct guest list.</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td><code>prot_rescue</code></td>
+                  <td>0.5629</td>
+                  <td>Slight over-swap.</td>
+                </tr>
+                <tr>
+                  <td>20</td>
+                  <td><code>prot_rescue20</code></td>
+                  <td>0.5587</td>
+                  <td>Too many changes. Good poses got evicted.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">07</div>
+        <div>
+          <h3>Clean, validate, and protect the artifact</h3>
+          <p>
+            Submission hygiene became part of the method: validate the zip, clean
+            known server-side scoring failures, inject ligand CONECT records, apply
+            any verified overrides, then submit through the ladder so the latest
+            visible submission is restored to the best artifact near deadline.
+          </p>
+          <div class="pill-row">
+            <span class="pill good">184 PDBs</span>
+            <span class="pill good">0 missing LIG</span>
+            <span class="pill good">0 connectivity errors</span>
+            <span class="pill warn">latest-submission leaderboard</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="validation">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Commercial Break</span>
+          <h2>What was measured</h2>
+        </div>
+        <p class="section-lede">
+          The pageant had multiple judges. LDDT-PLI was the crown, but BiSyRMSD
+          and LDDT-LP helped explain which shiny contestants were secretly holding
+          the map upside down.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <article class="card">
+          <h3>Leaderboard</h3>
+          <p><code>prot_rescue8</code> scored 0.5640 LDDT-PLI, rank 2, with BiSyRMSD 3.460 and LDDT-LP 0.9093.</p>
+        </article>
+        <article class="card">
+          <h3>Local holo gate</h3>
+          <p>53 holo validation systems tracked RMSD, under-2A fraction, and LDDT proxy for selectors.</p>
+        </article>
+        <article class="card">
+          <h3>Submission metrics</h3>
+          <p><code>data/processed/submission_metrics.csv</code> consolidated final PLI, BiSyRMSD, LP, rank, and submit time.</p>
+        </article>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank by PLI</th>
+              <th>Submission</th>
+              <th>LDDT-PLI</th>
+              <th>BiSyRMSD</th>
+              <th>LDDT-LP</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><code>prot_rescue8</code></td>
+              <td class="good">0.5640</td>
+              <td>3.4600</td>
+              <td>0.9093</td>
+              <td>Best overall. Balanced base plus 8 Protenix swaps.</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><code>af3deep_upgrade</code></td>
+              <td>0.5632</td>
+              <td>3.4801</td>
+              <td>0.9094</td>
+              <td>More AF3 sampling was strong but did not beat targeted Protenix.</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><code>prot_rescue</code></td>
+              <td>0.5629</td>
+              <td>3.4694</td>
+              <td>0.9108</td>
+              <td>12 swaps. Close, but slightly too much rescue.</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><code>flip_moonshot_agentic</code></td>
+              <td>0.5627</td>
+              <td>3.4609</td>
+              <td>0.9096</td>
+              <td>Six conservative edge-chemistry flips survived an agentic filter.</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><code>af3_iface_upgrade</code></td>
+              <td>0.5625</td>
+              <td>3.4594</td>
+              <td>0.9090</td>
+              <td>Interface-restricted AF3 helped, but not enough.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <strong>Metric lesson:</strong> LDDT-LP did not crown the same winner.
+        For example, <code>sub_af3_b2</code> had a very high LDDT-LP of 0.9204
+        but only 0.5405 LDDT-PLI. Pocket quality and interaction quality were
+        coupled, but not identical. The ligand still had to be in the right
+        interaction geometry.
+      </div>
+
+      <div class="figure-grid">
+        <figure>
+          <img src="figures/fig02_validation_methods.png" alt="Validation method comparison chart">
+          <figcaption>Validation selectors on holo systems. This was the early warning that confidence signals transfer better than hand-built priors.</figcaption>
+        </figure>
+        <figure>
+          <img src="figures/iter4_validation_expansion_35_vs_53.png" alt="35 versus 53 holo validation expansion chart">
+          <figcaption>The 35-to-53 holo expansion exposed overfit. A tiny validation win was not enough to trust a new selector.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="compute">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Compute Roll Call</span>
+          <h2>Where the pixels cooked</h2>
+        </div>
+        <p class="section-lede">
+          This was a multi-backend project. The final zip looks small, but behind
+          it was a relay race across HPC queues, notebook GPUs, cloud containers,
+          remote desktops, and a few "why is CUDA mad today" intermissions.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Compute / platform</th>
+              <th>Used for</th>
+              <th>Why it mattered</th>
+              <th>Constraints / notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Northeastern Explorer cluster</strong><br><code>ssh explorer</code>, SLURM</td>
+              <td>Protenix-v2 full 184 run, ESMFold2 harvests and MSA variants, Chai-1, IntFold/NP1/RFAA probes, Protenix/SAIR fine-tune scaffolding, Glide/IFD-style staging.</td>
+              <td>The decisive tail-rescue pose source came from Explorer: Protenix-v2 best poses, including the 8 final swaps.</td>
+              <td>Free university HPC, but shared queues, A100/V100 compatibility issues, scratch/cache management, and occasional no-internet-on-compute-node friction.</td>
+            </tr>
+            <tr>
+              <td><strong>Modal</strong><br>A100/H100 cloud containers</td>
+              <td>AF3 inference tooling, rapid GPU containers for cofolder/docking probes, Modal scripts for AF3, Chai, ESMFold2, Protenix, RFAA, gnina, SurfDock-style experiments.</td>
+              <td>Fast reproducible GPU containers made it possible to add high-quality AF3-derived poses and test orthogonal model ideas without rebuilding local CUDA worlds by hand.</td>
+              <td>Paid cloud GPU. README estimate for AF3-era usage was about $50; practical limit was cost/quota versus the 4-hour submission cadence.</td>
+            </tr>
+            <tr>
+              <td><strong>Kaggle notebooks</strong><br>T4/P100/L4-style kernels</td>
+              <td>Boltz validation notebooks, 35-to-53 holo expansion, OpenMM MD refine, gnina rescore, ESMFold+smina, ProteinMPNN, xTB handoffs, OF3 fine-tune attempts.</td>
+              <td>Kaggle supplied disposable Linux/GPU runners for experiments that Windows could not run cleanly and for validation jobs that needed a notebook artifact trail.</td>
+              <td>About 60 GPU-hours across nb01-nb17. 9-hour caps, dataset-mount weirdness, P100/T4 CUDA mismatches, and the occasional cell-1 <code>nvidia-smi</code> pratfall.</td>
+            </tr>
+            <tr>
+              <td><strong>Google Colab / Colab Pro</strong></td>
+              <td>Chai/Protenix fallback tests, OF3/ColabFold MSA workflows, quick GPU checks, occasional long-running notebook alternatives when Kaggle or Explorer was saturated.</td>
+              <td>Colab was the flexible "try this now" bench: useful when a single A100-ish session could answer whether a path deserved cluster or ladder time.</td>
+              <td>Roughly 10 Colab Pro compute units noted in the README. Runtime persistence and quota made it better for probes than for final automation.</td>
+            </tr>
+            <tr>
+              <td><strong>GitHub Codespaces</strong></td>
+              <td>CPU-side ranker planning, ChEMBL/PXR data work, XGBoost/gnina/MD handoff bundles, Linux packaging checks when the Windows environment was inconvenient.</td>
+              <td>Codespaces acted as a clean Linux dev box for scripts that were not GPU-bound but disliked local Windows paths, native binaries, or package assumptions.</td>
+              <td>Useful 16-core/32 GB class CPU environment, but ephemeral disk and no serious GPU meant it was a staging and analysis backend, not the final folding engine.</td>
+            </tr>
+            <tr>
+              <td><strong>AWS WorkSpaces</strong><br>persistent Windows workstation</td>
+              <td>Primary repo orchestration surface, Windsurf/Codex sessions, zip assembly, leaderboard monitoring, browser/API submission operations, Windows Scheduled Task safety restore.</td>
+              <td>The always-on remote desktop kept the operational pieces together: queue state, deadline guard, file movement, and the "latest submission is what counts" safety net.</td>
+              <td>Stable and persistent, but not a GPU folding machine. Best for coordination, not brute-force inference.</td>
+            </tr>
+            <tr>
+              <td><strong>Boltz hosted API</strong></td>
+              <td>Boltz-2.1 best-of-5/10 runs, full-MSA/no-MSA style variants, drug-like analog sweeps, restrained and unrestrained Boltz comparison work.</td>
+              <td>Let the project buy pose diversity quickly when local GPUs were queued or when hosted Boltz confidence JSONs were the cleanest signal source.</td>
+              <td>README notes roughly $80 of $100 credits used. Great for targeted sweeps, not infinite sampling.</td>
+            </tr>
+            <tr>
+              <td><strong>Precomputed public/shared pools</strong><br>HF and local caches</td>
+              <td><code>dargason/pxr-cofold</code> Boltz-2/OpenFold3 pools, cached PXR holos, validation predictions, archived/offloaded Protenix outputs.</td>
+              <td>Precomputed pools made the first z-hybrid and many follow-up selectors possible without re-folding everything from scratch.</td>
+              <td>Not compute in the billing sense, but absolutely compute in the scientific sense: the repo's selection work depends on these prior generated pose pools.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <strong>Compute lesson:</strong> the winning method was cheap at submit
+        time but expensive in search time. Explorer generated the crucial
+        Protenix tail poses; Modal and AF3 improved the base pool; Kaggle/Colab
+        tested validation and rescue hypotheses; Codespaces and AWS WorkSpaces
+        kept the ops layer alive. The repo is a small final zip sitting on a
+        surprisingly athletic compute relay team.
+      </div>
+    </section>
+
+    <section id="experiments">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Guests On The Couch</span>
+          <h2>Experiment ledger</h2>
+        </div>
+        <p class="section-lede">
+          Every method below is documented in the repo as a build script, a queue
+          row, a metrics row, or a research note. The common format is simple:
+          idea, validation, verdict, and what would be needed to revive it.
+        </p>
+      </div>
+
+      <article class="experiment win">
+        <h3>Targeted Protenix failure-tail rescue</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Use Protenix only where the 4-model base has low calibrated confidence.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Swap-count bracket: 4, 8, 12, 20 swaps on the leaderboard.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>Peak at 8 swaps: 0.5640 LDDT-PLI.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Keep. This is the final submission.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Better Protenix-like generation, not more blind swap count.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment hold">
+        <h3>Fine-tuning and receptor-family training</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Fine-tune an open cofolder on PXR/NR-family structures, promiscuous binders, and SAIR-style cofold data.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Research notes, SAIR filtering plans, OF3/Protenix fine-tune scaffolds, and holo GT gates.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>No competition-ready fine-tuned model beat <code>prot_rescue8</code> before deadline.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Not killed. Deferred because training data, compute, and validation needed more runway.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Combinatorial NR/promiscuous-binder/SAIR fine-tuning with affinity and medchem auxiliary heads.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment near">
+        <h3>AF3 deep sampling, recycling, and interface scoring</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>AF3 might improve the tail with deeper sampling, more recycling, or ligand-local confidence ranking.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Leaderboard A/B: <code>af3deep_upgrade</code> and <code>af3_iface_upgrade</code>.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>0.5632 and 0.5625, both rank 2 quality.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Strong near-misses. Keep as evidence, not final.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Full 184 AF3 interface confidence pool or custom MSA sweep.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment near">
+        <h3>Conservative medchem and flip filters</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Fix obvious local polar-anchor mistakes without re-placing whole ligands.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Manual annotation variants and <code>flip_moonshot_agentic</code>.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>Best: 0.5627 for filtered flips, 0.5613 for regular annotation.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Useful as tiny, conservative edits. Aggressive edits overcorrect.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Ground truth or a reliable local pose-quality discriminator.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment kill">
+        <h3>Full z-hybrid expansion</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Add Protenix, IntFold, ESMFold2, or other sources as full ensemble members.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p><code>zhyb5_prot</code>, IntFold variants, and combo rescues.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p><code>zhyb5_prot</code> fell to 0.5241.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Killed. Full expansion over-selects confident but wrong poses.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Model-specific calibration labels, not just more model names.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment kill">
+        <h3>Learned pose scorer</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Train XGBoost LambdaMART to select the lowest-RMSD pose from rich features.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Holo GT check looked promising in-distribution, then live leaderboard tested transfer.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p><code>posescorer_pick</code> scored 0.4762.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Killed for blinded cross-model selection.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Released challenge GT and multi-cofolder holo labels.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment kill">
+        <h3>Agentic pool selection</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Use per-ligand structural reasoning and SAR context to override the base.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>184 reviewed picks, 73 overrides, then leaderboard.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p><code>agentic_pool_pick</code> scored 0.5140.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Killed as a broad selector. Plausible chemistry is not native geometry.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Agent reasoning as a gate on tiny edits, not a wholesale chooser.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment kill">
+        <h3>Templating, constraints, and anchored generation</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Use NR templates, PXR holo priors, corrected chemistry, and constrained cofolds to guide hard ligands.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p><code>hardtail_rescue</code>, <code>hardtail20_rescue</code>, restraint/repr builders, and template notes.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>0.5456 and 0.5441.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Killed. Anchors can be seductive little liars on PanDDA fragments.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Fragment-specific receptor/ligand GT, not generic anchor constraints.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment hold">
+        <h3>ESMFold2 and MSA-depth sweep</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Reduce protein-template bias so ligand placement drives the pose.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Full-MSA standalone and failure-tail rescue.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>Standalone full MSA: 0.5264. Rescue8: 0.5610.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Not final. Orthogonal but weaker than Protenix on the hard tail.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Completed no-MSA or shallow-MSA scoring, plus rescue-only gating.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="experiment kill">
+        <h3>Crystal anchors, MD, MMFF, xTB, docking, and classic physics</h3>
+        <div class="logic-grid">
+          <div class="logic-cell">
+            <strong>Idea</strong>
+            <p>Use known holo structures, local minimization, strain, docking, or energy to correct poses.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Validated by</strong>
+            <p>Early leaderboard failures, 35/53-holo gates, and divergence checks.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Measured</strong>
+            <p>Crystal-anchor submissions hit 0.167 to 0.466; MMFF was worse than IPDE locally.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Verdict</strong>
+            <p>Killed for this blinded distribution.</p>
+          </div>
+          <div class="logic-cell">
+            <strong>Next need</strong>
+            <p>Use these as validity gates after generation, not as primary pose selectors.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section id="failure">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Closing Monologue</span>
+          <h2>Why it did not win</h2>
+        </div>
+        <p class="section-lede">
+          The failure was not lack of experiments. This repo brought a marching
+          band. The failure was that the remaining gap needed better pose
+          generation or true labels, not more confident narration about unlabeled
+          poses.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <article class="card">
+          <h3>Selection wall</h3>
+          <p>Many ligands had plausible alternatives in the pool, but no unlabeled selector reliably identified them.</p>
+        </article>
+        <article class="card">
+          <h3>Fragment OOD</h3>
+          <p>PanDDA fragments did not obey drug-like PXR holo priors, so anchor and SAR priors often sign-flipped.</p>
+        </article>
+        <article class="card">
+          <h3>Leaderboard trap</h3>
+          <p>The board displayed the latest submission, not the best, so the ladder had to protect the known high score.</p>
+        </article>
+      </div>
+
+      <div class="callout">
+        <strong>What would make it work:</strong> released blind-test ground truth
+        for selector training; a multi-cofolder holo validation set; much more
+        massive sampling and recycling on the hard tail; affinity data and
+        medchem annotations used as auxiliary supervision; AF3-style custom heads
+        trained for PXR/NR ligand-interface quality; and combinatorial fine-tuning
+        across all nuclear receptors, promiscuous binders, and receptor-relevant
+        SAIR subsets. In plain host voice: the punchline needs new evidence and
+        better generation, not a louder microphone.
+      </div>
+
+      <div class="figure-grid">
+        <figure>
+          <img src="figures/fig04_iter_attempts.png" alt="Attempted approaches by iteration">
+          <figcaption>The experiment volume was high. The lesson was not "try less"; it was "trust only ideas that survive transfer."</figcaption>
+        </figure>
+        <figure>
+          <img src="figures/oracle_lddtpli_vs_mw.png" alt="Oracle LDDT-PLI versus molecular weight">
+          <figcaption>The drug-like / fragment split mattered. Some failures were distribution failures wearing a lab coat.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="repo-map">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Backstage Tour</span>
+          <h2>Repository map</h2>
+        </div>
+        <p class="section-lede">
+          The codebase is not one pipeline. It is a challenge war room: generation,
+          selection, validation, submission safety, research notes, and postmortem
+          documentation all living under one roof.
+        </p>
+      </div>
+
+      <div class="repo-map" aria-label="Repository scan summary">
+        <div class="repo-tile"><b>613</b><span>scripts</span></div>
+        <div class="repo-tile"><b>19</b><span>notebooks</span></div>
+        <div class="repo-tile"><b>98</b><span>zip submissions</span></div>
+        <div class="repo-tile"><b>53</b><span>holo validation set</span></div>
+        <div class="repo-tile"><b>184</b><span>B2 ligand dirs</span></div>
+        <div class="repo-tile"><b>184</b><span>OF3 ligand dirs</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Representative files</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Final builder</td>
+              <td><code>build_nmodel_zhybrid.py</code>, <code>build_prot_rescue.py</code></td>
+              <td>Create the calibrated base and targeted Protenix rescue.</td>
+            </tr>
+            <tr>
+              <td>Validation</td>
+              <td><code>validate_submission.py</code>, <code>score_validation.py</code>, <code>aggregate_validation.py</code></td>
+              <td>Format checks, ligand graph matching, holo RMSD gates.</td>
+            </tr>
+            <tr>
+              <td>Submission safety</td>
+              <td><code>ladder_submit.py</code>, <code>deadline_restore.py</code>, <code>fetch_leaderboard.py</code></td>
+              <td>Respect cooldown, record scores, restore best near deadline.</td>
+            </tr>
+            <tr>
+              <td>Pose generation</td>
+              <td><code>modal_af3.py</code>, <code>boltz_api_msa.py</code>, <code>modal_chai.py</code>, <code>modal_esmfold2.py</code></td>
+              <td>Run or harvest cofolder pools from Modal, Explorer, APIs, and notebooks.</td>
+            </tr>
+            <tr>
+              <td>Experiment builders</td>
+              <td><code>build_ai_*</code>, <code>build_crystal_*</code>, <code>wf_*</code></td>
+              <td>Selection variants, crystal priors, physics filters, consensus methods.</td>
+            </tr>
+            <tr>
+              <td>Research notes</td>
+              <td><code>data/processed/*.md</code>, <code>docs/*.md</code></td>
+              <td>Decision records, failed hypotheses, score logs, post-challenge plans.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="reproduce">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Roll Credits</span>
+          <h2>Reproduce the final artifact</h2>
+        </div>
+        <p class="section-lede">
+          These commands rebuild the selected logic. The only caveat is that some
+          raw Protenix-v2 poses were produced on Explorer and archived off-disk,
+          so a fully cold rebuild needs those poses restored or regenerated.
+        </p>
+      </div>
+
+      <pre><code># 1. Rebuild the calibrated 4-model base
+.venv\Scripts\python.exe scripts\build_nmodel_zhybrid.py AF3,B2,OF3,CHAI ai_4model_base
+
+# 2. Apply the targeted Protenix rescue on the 8 lowest-confidence ligands
+.venv\Scripts\python.exe scripts\build_prot_rescue.py 8 prot_rescue8
+
+# 3. Validate the submission zip
+.venv\Scripts\python.exe scripts\validate_submission.py submissions\prot_rescue8.zip
+
+# 4. Optional manual hygiene passes used by the ladder before submit
+.venv\Scripts\python.exe scripts\clean_scoring_fails.py prot_rescue8
+.venv\Scripts\python.exe scripts\add_conect.py prot_rescue8
+
+# 5. Submit manually only when intended; the ladder usually owns this
+.venv\Scripts\python.exe scripts\submit.py submissions\prot_rescue8.zip --confirm</code></pre>
+
+      <div class="callout">
+        <strong>Primary evidence files:</strong>
+        <a href="../data/processed/best_submission.json"><code>best_submission.json</code></a>,
+        <a href="../data/processed/submission_metrics.csv"><code>submission_metrics.csv</code></a>,
+        <a href="../data/processed/ladder_queue.csv"><code>ladder_queue.csv</code></a>,
+        <a href="../data/external/curation/prot_rescue8_selection.csv"><code>prot_rescue8_selection.csv</code></a>,
+        and <a href="../README.md"><code>README.md</code></a>.
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Built as a single static page for the OpenADMET PXR structure repo. Narrative pacing was inspired by
+    <a href="https://supercowpowers.github.io/workbench/blogs/pxr_weekend_experiments/">A Weekend on the PXR Challenge</a>,
+    then re-skinned into late-night pixel lab mode. The science stays buttoned up; the host is allowed one goofy tie.
+  </footer>
+</body>
+</html>
