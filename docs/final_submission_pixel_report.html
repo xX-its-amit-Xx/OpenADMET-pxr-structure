@@ -1027,6 +1027,52 @@
             and
             <a href="../scripts/build_ai_4model_zhybrid.py"><code>scripts/build_ai_4model_zhybrid.py</code></a>.
           </p>
+          <div class="callout">
+            <strong>Exact z-hybrid scoring recipe:</strong>
+            for model <code>m</code>, ligand <code>i</code>, and sample
+            <code>k</code>, compute a raw confidence signal
+            <code>r[m,i,k]</code>. First choose the best sample inside each
+            model, <code>k* = argmax_k r[m,i,k]</code>. Then calibrate that
+            model's best-sample signals across all 184 ligands:
+            <code>z[m,i] = (r[m,i,k*] - mean_i r[m,i,k*]) / std_i r[m,i,k*]</code>,
+            with a fallback standard deviation of 1.0 if needed. The base pose
+            for ligand <code>i</code> is copied from <code>argmax_m z[m,i]</code>.
+            Translation for the studio audience: every model gets graded on its
+            own curve, then the highest curved grade wins the ligand.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Raw signal used for <code>r[m,i,k]</code></th>
+                  <th>Why that direction</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Boltz-2</td>
+                  <td><code>-complex_ipde</code></td>
+                  <td>Lower predicted interface distance error is better, so the sign is flipped.</td>
+                </tr>
+                <tr>
+                  <td>OpenFold3</td>
+                  <td><code>-mean(PAE[protein residues 1:293, ligand tokens])</code>, falling back to <code>chain_pair_iptm(A,L)</code></td>
+                  <td>Lower protein-ligand PAE, or higher interface pTM when PAE was not exported.</td>
+                </tr>
+                <tr>
+                  <td>AF3</td>
+                  <td>Best exported AF3 ranking/interface score in <code>af3_best/_ranking.json</code></td>
+                  <td>The AF3 extraction step had already reduced samples to one ranked best pose per ligand.</td>
+                </tr>
+                <tr>
+                  <td>Chai-1</td>
+                  <td>Best exported Chai ranking/interface score in <code>chai_best/_ranking.json</code></td>
+                  <td>Same pattern: model-native confidence picks the sample, then z-calibration handles scale.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1145,6 +1191,55 @@
           <h3>Submission metrics</h3>
           <p><code>data/processed/submission_metrics.csv</code> consolidated final PLI, BiSyRMSD, LP, rank, and submit time.</p>
         </article>
+      </div>
+
+      <div class="callout">
+        <strong>How the 53-holo validation set was composed:</strong>
+        the first 35 systems came from cached PXR holo structures in
+        <code>data/external/pxr_holo</code> and <code>data/external/pxr_crystals</code>.
+        <code>build_validation_set.py</code> extracted non-solvent HETATM ligands,
+        rejected buffers, metals, waters, tiny ligands, and molecules below
+        150 Da, kept one ligand per holo, and skipped duplicate canonical
+        SMILES. <code>fix_validation_smiles.py</code> then replaced RDKit's
+        lossy PDB-derived SMILES with RCSB Chemical Component Dictionary
+        canonical SMILES before writing Boltz input YAMLs against the PXR FASTA.
+        The expansion added 18 ChEMBL-linked PXR holos from
+        <code>new_validation_pdbs.csv</code>, all marked <code>in_structure_test=0</code>,
+        giving <code>35 + 18 = 53</code> validation systems.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Validation stage</th>
+              <th>Count</th>
+              <th>What was checked</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Original PXR holo gate</td>
+              <td>35 holos</td>
+              <td>Ligand extraction, canonical SMILES cleanup, Boltz YAML generation.</td>
+            </tr>
+            <tr>
+              <td>ChEMBL/RCSB expansion</td>
+              <td>18 holos</td>
+              <td>Held out from the structure test set; ligand-only crystals extracted after Kaggle nb16.</td>
+            </tr>
+            <tr>
+              <td>Final scored pose matrix</td>
+              <td>53 x 20 = 1060 poses</td>
+              <td>Twenty Boltz predictions per holo, scored with the same local RMSD harness.</td>
+            </tr>
+            <tr>
+              <td>Scoring harness</td>
+              <td>Per pose</td>
+              <td>Protein C-alpha Kabsch superposition, symmetry-aware heavy-atom ligand RMSD, and <code>1/(1+RMSD)</code> as an LDDT-PLI-like proxy.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div class="table-wrap">

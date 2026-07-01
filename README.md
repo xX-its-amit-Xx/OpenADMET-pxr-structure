@@ -57,6 +57,23 @@ Each model contributes one "best" pose per ligand after within-model selection.
 
 Across the 4 base models, we pick the model with the highest z-scored confidence signal for each ligand independently. This is the core breakthrough: cross-model diversity (each model fails on different ligands) combined with z-normalization (prevents one model's inflated raw scores from dominating) produces the best per-ligand pick.
 
+Exact scoring recipe:
+
+1. For every model `m`, ligand `i`, and sample `k`, compute a model-native raw confidence `r[m,i,k]`.
+2. Pick the best sample inside that model: `k* = argmax_k r[m,i,k]`.
+3. Z-score the best-sample scores across all 184 ligands for that model:
+   `z[m,i] = (r[m,i,k*] - mean_i r[m,i,k*]) / std_i r[m,i,k*]`, with `std=1.0` as the zero-variance fallback.
+4. Copy the pose from `argmax_m z[m,i]`.
+
+Model signals:
+
+| Model | Signal |
+|---|---|
+| Boltz-2 | `-complex_ipde` |
+| OpenFold3 | `-mean(PAE[protein residues 1:293, ligand tokens])`, fallback `chain_pair_iptm(A,L)` |
+| AF3 | exported AF3 ranking/interface score from `af3_best/_ranking.json` |
+| Chai-1 | exported Chai ranking/interface score from `chai_best/_ranking.json` |
+
 Script: `scripts/build_ai_4model_zhybrid.py` — base score: **0.5472**
 
 **Step 4 — Protenix-v2 tail rescue**
@@ -375,10 +392,21 @@ $env:PYTHONIOENCODING="utf-8"; $env:PYTHONUTF8="1"
 
 The 53-holo PXR validation set gates every new candidate before submission.
 
+Composition:
+
+1. `scripts/build_validation_set.py` built the original 35-holo set from cached PXR structures in `data/external/pxr_holo` and `data/external/pxr_crystals`.
+2. Ligands were extracted from non-solvent `HETATM` records; buffers, waters, metals, tiny ligands, molecules below 150 Da, duplicate canonical SMILES, and multi-ligand ambiguity were filtered out.
+3. `scripts/fix_validation_smiles.py` replaced RDKit PDB-derived SMILES with RCSB Chemical Component Dictionary canonical SMILES, then rewrote Boltz YAML inputs using the PXR FASTA.
+4. `scripts/_prepare_nb16_validation.py` added 18 ChEMBL/RCSB PXR holos from `new_validation_pdbs.csv`, all with `in_structure_test=0`.
+5. Final local validation matrix: 53 holos x 20 Boltz predictions = 1060 scored poses.
+
+Scoring harness: align predicted protein to the crystal by C-alpha Kabsch superposition, transform the ligand into the crystal frame, compute RDKit symmetry-aware heavy-atom ligand RMSD, then report `1/(1+RMSD)` as an LDDT-PLI-like proxy.
+
 ```powershell
 # Score 53 holo crystals (RMSD per pose per model)
-.venv\Scripts\python.exe scripts\score_validation.py
-#   -> data/processed/validation_set/scores_53holo.csv
+.venv\Scripts\python.exe scripts\score_validation.py data\processed\validation_set\preds_nb16
+#   -> data/processed/validation_set/scores.csv
+#   -> data/processed/validation_set/scores_53holo.csv snapshot
 
 # Aggregate: method_comparison.csv (mean RMSD, % under 2A, lddt_proxy)
 .venv\Scripts\python.exe scripts\aggregate_validation.py
@@ -387,14 +415,14 @@ The 53-holo PXR validation set gates every new candidate before submission.
 .venv\Scripts\python.exe scripts\validate_selection.py submissions\<NEW>.zip submissions\prot_rescue8.zip
 ```
 
-Gate threshold (from empirical calibration): `mean RMSD <= 2.15 Å AND divergence in [5, 30]%`
+Gate threshold (from empirical calibration): `mean RMSD <= 2.15 A AND divergence in [5, 30]%`
 
 | Method | Mean RMSD (53 holos) | Leaderboard score |
 |---|---|---|
-| prot_rescue8 | ~1.90 Å (est.) | **0.5640** |
-| IPDE-best (baseline) | 1.938 Å | 0.4996 |
-| plddt-best | 2.230 Å | ~0.50 |
-| oracle lower bound | ~1.08 Å | ~0.70 theoretical |
+| prot_rescue8 | ~1.90 A (est.; not all final sources exist in the holo gate) | **0.5640** |
+| IPDE-best (baseline) | 1.938 A | 0.4996 |
+| plddt-best | 1.968 A | ~0.50 |
+| oracle lower bound | 1.403 A | ~0.70 theoretical |
 
 ---
 

@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Envs
+.venv/
+venv/
+env/
+.env
+.python-version
+
+# Data
+data/raw/
+data/processed/
+data/external/
+*.parquet
+
+# Submissions (zips are large and reproducible)
+submissions/*.zip
+submissions/kaggle_*/
+submissions/ai_*/
+submissions/*/
+
+# Auto-submit / scheduler artifacts (per-day artifact scripts; keep auto_submit_v2.py)
+scripts/auto_submit_[0-9]*.py
+data/processed/log_v2_*.txt
+data/processed/log_*.txt
+data/processed/build_*.log
+data/processed/score_*.log
+data/processed/leaderboard_log.csv
+data/processed/submission_log.csv
+data/processed/approach_comparison.json
+data/processed/compound_families.json
+data/processed/compound_tracker.md
+
+# Kaggle / nb outputs
+nb05*.log
+*.joblib
+logs/
+notebooks/*_output/
+notebooks/*.zip
+notebooks/*.tar.gz
+
+# Claude Code per-project state (memory lives under ~/.claude - not here)
+.claude/
+
+# Notebooks
+*.nbconvert.ipynb
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
