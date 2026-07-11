@@ -234,10 +234,12 @@ with deeper sampling on the pathological fragments.</p>
 (Boltz-1/2, OpenFold3, AF3, Chai, Protenix v2, ESMFold2, RoseTTAFold3, apo templates, and the
 LatchBio-sponsored AF3 sampling) - is being packaged with <b>proper per-pose labels</b>
 (ligand SMILES, model, confidence signals, cross-model disagreement, ligand properties) and
-published openly so others can benefit from the compute already spent. See
-<code>data/processed/posthoc/</code> and the released dataset bundle. If a good pose exists in
-this pool for a ligand that a future method can learn to <i>select</i>, that is the open problem
-this data exists to help solve.</p>
+published openly so others can benefit from the compute already spent.
+<b>2,310 poses (15 models x 184 ligands) with full per-pose labels</b> are released on Hugging Face:
+<a href="https://huggingface.co/datasets/xX-its-amit-Xx/pxr-structure-pose-pool">huggingface.co/datasets/xX-its-amit-Xx/pxr-structure-pose-pool</a>
+(CC-BY-4.0; <code>manifest.csv</code> carries SMILES, confidence, cross-model disagreement, and
+ligand properties). If a good pose exists in this pool for a ligand that a future method can learn
+to <i>select</i>, that is the open problem this data exists to help solve.</p>
 </section>
 
 <section id="thanks">{kicker("gratitude")}
