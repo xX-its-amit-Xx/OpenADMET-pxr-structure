@@ -58,3 +58,23 @@ notebooks/*.tar.gz
 .idea/
 .DS_Store
 Thumbs.db
+
+# ---- Secrets / credentials (hardening 2026-07-11) ----
+.env
+.env.*
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+kaggle.json
+.modal.toml
+.netrc
+**/token.json
+**/synapse_token.txt
+**/credentials
+secrets/
+.openprotein/
+id_rsa
+id_ed25519
