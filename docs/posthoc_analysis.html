@@ -667,6 +667,19 @@ model-confidence channel - pLDDT, ipTM, iPDE, pTM - lands near <b>2.3 A</b>, onl
 better than random pose choice. Best of all was a simple geometric count
 (<code>n_pocket_contacts_4p5</code>, 2.16 A). We captured under half the available headroom.
 This is why more/better <i>sampling</i> never moved the needle: the bottleneck was picking.</p>
+<h3>Even a GT-trained ML selector cannot beat it</h3>
+<p>The obvious fix - train a model on true RMSD to rank poses - was tested here with
+leave-one-holo-out CV on <b>only inference-time (GT-free) physics + confidence features</b>.
+Result: <b>2.42 A</b>, no better than plain pLDDT (2.27 A)
+and far from oracle (1.63 A). <b>The selection wall is an information failure, not a
+modeling failure</b>: the signal needed to identify the correct pose is not present in any
+feature computable without the answer.</p>
+<p class="muted">Caveat &amp; a real bug: our <i>deployed</i> pose scorer appeared to hit oracle
+in development - because it was fed <b>leaky features</b> (<code>pool_oracle</code>,
+<code>q_softgain</code>, which encode the ground-truth minimum). Those inflate dev metrics and
+vanish at inference, explaining why the custom scorer never improved the live leaderboard.
+Honest GT-free performance is 2.42 A. (Panel: 17 holos x 20 Boltz poses; a
+larger cross-model GT panel is being built to confirm.)</p>
 </section>
 
 <section id="failure-modes"><span class="kicker">finding 2 // anchoring</span>
@@ -695,8 +708,11 @@ medoid model, confidence, and properties - is written to
 <section id="rebuild"><span class="kicker">in progress // methods we skipped</span>
 <h2>Rebuilding the approaches we did not finish</h2>
 <p>Now running across Explorer / Modal x2 / Boltz / OpenProtein / Kaggle / Colab:</p>
-<p><span class="step-number">A</span> <b>GT-trained pose selector</b> - the one thing that could
-beat the selection wall: learn to rank poses by true-RMSD on the holo panel, not by confidence.</p>
+<p><span class="step-number">A</span> <b>GT-trained pose selector</b> - <span class="pill">DONE - negative</span>
+learning to rank poses by true RMSD on GT-free features does <i>not</i> beat confidence
+(2.42 A vs oracle 1.63 A). The wall is fundamental. Next test: a larger
+cross-model GT panel (co-fold the 53 holos with every model) to see if <i>cross-model</i>
+features carry the missing signal.</p>
 <p><span class="step-number">B</span> <b>MD / physics refinement</b> of the pool best poses
 (OpenMM/Desmond) to test if relaxation closes the oracle gap.</p>
 <p><span class="step-number">C</span> <b>Fresh co-folds</b> (Boltz, OpenProtein RF3/ESMFold)

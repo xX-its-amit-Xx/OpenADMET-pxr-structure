@@ -29,6 +29,26 @@ R = pd.DataFrame(rows)
 oracle = R["oracle"].median(); best_sel = min([R[s].median() for s in sig])
 best_name = min(sig, key=lambda s: R[s].median())
 
+# GT-free learned selector (leave-one-holo-out) — can ML beat the wall?
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import LeaveOneGroupOut
+GTFREE = ["centroid_to_pocket", "radius_gyration", "buried_frac", "n_pocket_contacts_4p5",
+          "n_contacts_5p0", "min_pl_dist", "clash_soft", "clash_hard", "clash_vhard",
+          "pocket_resid_engaged", "pocket_contact_total", "pocket_contact_max",
+          "aromatic_cage_contacts", "aromatic_cage_engaged", "anchor_ser247", "anchor_gln285",
+          "anchor_his407", "anchor_arg410", "n_anchor_hbond_3p5", "n_anchors_engaged_5",
+          "flex_anchor_overengaged", "mmff_strain_global", "lig_plddt", "conf_score", "ptm",
+          "iptm", "ligand_iptm", "complex_plddt", "complex_pde", "complex_ipde", "n_heavy"]
+_f = [c for c in GTFREE if c in ds.columns]
+_X = ds[_f].fillna(0).values; _y = ds["rmsd"].values; _g = ds["holo"].values
+_L = []
+for tr, te in LeaveOneGroupOut().split(_X, _y, _g):
+    _m = GradientBoostingRegressor(n_estimators=300, max_depth=3, learning_rate=0.05,
+                                   subsample=0.8, random_state=0).fit(_X[tr], _y[tr])
+    _gh = ds.iloc[te]
+    _L.append(_gh.iloc[np.argmin(_m.predict(_X[te]))]["rmsd"])
+learned_sel = float(np.median(_L))
+
 corrs = {c: spearmanr(d[c], d["disagreement_mean_pw_rmsd"], nan_policy="omit")[0]
          for c in ["heavy", "mw", "tpsa", "rotb", "clogp", "narom"]}
 
@@ -133,6 +153,19 @@ model-confidence channel - pLDDT, ipTM, iPDE, pTM - lands near <b>2.3 A</b>, onl
 better than random pose choice. Best of all was a simple geometric count
 (<code>{best_name}</code>, {best_sel:.2f} A). We captured under half the available headroom.
 This is why more/better <i>sampling</i> never moved the needle: the bottleneck was picking.</p>
+<h3>Even a GT-trained ML selector cannot beat it</h3>
+<p>The obvious fix - train a model on true RMSD to rank poses - was tested here with
+leave-one-holo-out CV on <b>only inference-time (GT-free) physics + confidence features</b>.
+Result: <b>{learned_sel:.2f} A</b>, no better than plain pLDDT ({R['lig_plddt'].median():.2f} A)
+and far from oracle ({oracle:.2f} A). <b>The selection wall is an information failure, not a
+modeling failure</b>: the signal needed to identify the correct pose is not present in any
+feature computable without the answer.</p>
+<p class="muted">Caveat &amp; a real bug: our <i>deployed</i> pose scorer appeared to hit oracle
+in development - because it was fed <b>leaky features</b> (<code>pool_oracle</code>,
+<code>q_softgain</code>, which encode the ground-truth minimum). Those inflate dev metrics and
+vanish at inference, explaining why the custom scorer never improved the live leaderboard.
+Honest GT-free performance is {learned_sel:.2f} A. (Panel: 17 holos x 20 Boltz poses; a
+larger cross-model GT panel is being built to confirm.)</p>
 </section>
 
 <section id="failure-modes">{kicker("finding 2 // anchoring")}
@@ -161,8 +194,11 @@ medoid model, confidence, and properties - is written to
 <section id="rebuild">{kicker("in progress // methods we skipped")}
 <h2>Rebuilding the approaches we did not finish</h2>
 <p>Now running across Explorer / Modal x2 / Boltz / OpenProtein / Kaggle / Colab:</p>
-<p><span class="step-number">A</span> <b>GT-trained pose selector</b> - the one thing that could
-beat the selection wall: learn to rank poses by true-RMSD on the holo panel, not by confidence.</p>
+<p><span class="step-number">A</span> <b>GT-trained pose selector</b> - <span class="pill">DONE - negative</span>
+learning to rank poses by true RMSD on GT-free features does <i>not</i> beat confidence
+({learned_sel:.2f} A vs oracle {oracle:.2f} A). The wall is fundamental. Next test: a larger
+cross-model GT panel (co-fold the 53 holos with every model) to see if <i>cross-model</i>
+features carry the missing signal.</p>
 <p><span class="step-number">B</span> <b>MD / physics refinement</b> of the pool best poses
 (OpenMM/Desmond) to test if relaxation closes the oracle gap.</p>
 <p><span class="step-number">C</span> <b>Fresh co-folds</b> (Boltz, OpenProtein RF3/ESMFold)
