@@ -161,14 +161,14 @@ const PHASELABEL={gen:"generation",pool:"the pool",oracle:"hidden near-native",s
 // Atom indices are in the JSON's atom order; residues + displacements from crystal-contact analysis.
 const SITES=[
   {name:"Hydrophobic arm", atoms:[9], group:"tetrahydronaphthalene ring", res:"Ile414 · Phe420 · Leu411", disp:6.6, color:"#ffe66d",
-   why:"The bicyclic hydrophobic ring packs into a large, smooth hydrophobic sub-pocket that offers <b>no directional contacts</b>. Several ring orientations are near-isoenergetic, so the model slotted it into the <b>wrong sub-pocket</b> — a 6.6 Å miss. This is PXR's signature failure: a promiscuous ~1150 Å³ pocket that under-determines the pose.",
-   cite:"Watkins &amp; Redinbo, Science 2001 — PXR LBD promiscuity."},
+   why:"PXR's pocket is ~1,150 Å³ and <b>essentially uncharged</b> — 20 of ~28 lining residues are hydrophobic — so this bicyclic ring gets <b>no directional contact</b> to orient it and can sit in any of five near-isoenergetic sub-sites (SR12813 alone was seen in five orientations). And AF3-class models are biased to pin <i>polar</i> head-groups while <b>actively mis-placing hydrophobic groups</b> — ligand-orientation-within-pocket is their single biggest failure mode (58.6% of errors) — so the ring landed in the wrong sub-site, 6.6 Å off.",
+   cite:"Sci Rep 2018 (uncharged pocket, 5 SR12813 orientations); AF3 docking-failure analysis 2025."},
   {name:"Polar anchor", atoms:[10,5], group:"thiocarbamate C=S", res:"Ser247 · Gln285 · Cys284", disp:4.2, color:"#ff5a5f",
-   why:"The thiocarbonyl is the ligand's one <b>directional polar handle</b>, reaching the Ser247/Gln285 anchor that pins rifampicin and SR12813. But <b>sulfur is a weak, diffuse H-bond acceptor</b> — a shallow polarity gradient the model couldn't lock onto, so it slipped ~4 Å.",
-   cite:"Chrencik 2005; Watkins 2003 — Ser247/Gln285 agonist anchoring."},
-  {name:"His407 contact", atoms:[0,1,2], group:"methoxypyridine O/N", res:"His407", disp:4.5, color:"#ff9f1c",
-   why:"The methoxypyridine oxygen makes an <b>edge-on contact to His407</b> (3.2 Å) in PXR's polar network near the AF-2 surface. His407's sidechain is mobile and the contact is weak, not a strong H-bond — the model missed it by ~4.5 Å.",
-   cite:"Xue 2007 — His407/His327 polar network."},
+   why:"Ser247/Gln285/His407 are the <b>polar anchor cluster</b> that pins canonical agonists like SR12813, and Cys284 is part of the same hydrogen-bond hot-spot. But our ligand only offers a <b>thiocarbonyl (C=S)</b> here, and sulfur is a <b>weak, anisotropic H-bond acceptor</b> — ~20% weaker than a carbonyl O and accepting only along specific lone-pair directions. That shallow, directional signal is easy to miss, so it slipped ~4 Å.",
+   cite:"Sci Rep 2018 (S247/Q285/H407 anchoring); hot-spot H-bond map; ACS/PMC (C=S weak acceptor)."},
+  {name:"His407 contact", atoms:[0,1,2], group:"methoxypyridine O", res:"His407", disp:4.5, color:"#ff9f1c",
+   why:"His407 is a key <b>directional anchor</b> — it accepts a hydrogen bond from agonist hydroxyls (T0901317, SR12813). Here the ligand only reaches it with a <b>weak edge-on methoxy contact</b>, and His407's side chain is mobile in a pocket that reshapes around each ligand, so the model placed the group ~4.5 Å away.",
+   cite:"Cell/Structure 2023 (H407↔hydroxyl H-bond); hot-spot map (Gln285·Ser247·His407·Cys284)."},
 ];
 let worstModel=null, hoverLabel=null;
 
@@ -178,7 +178,8 @@ function buildSitebox(){
     SITES.map((s,k)=>`<div class="site-row" data-k="${k}" onmouseover="showSite(${k})">`
       +`<span class="dot" style="background:${s.color}"></span><b>${s.name}</b>`
       +`<span style="color:var(--muted)"> · ${s.group} · ${s.disp} Å off</span></div>`).join('')
-    +`<div class="whybox" id="whybox"></div>`;
+    +`<div class="whybox" id="whybox"></div>`
+    +`<div class="cite" style="margin-top:8px;line-height:1.5">Why PXR is hard: a uniquely promiscuous nuclear receptor — a large (~1,150→1,600 Å³), flexible, uncharged pocket that binds ligands from 250 to &gt;800 Da in near-isoenergetic poses. Only six side chains bind consistently (polar Ser247·Gln285·His407, hydrophobic Met243·Trp299·Phe420). Co-folding models trained on lock-and-key sites degrade sharply here — Chai-1's median pose error rises 2.4→5.7 Å as the pocket diverges from training.</div>`;
 }
 function showSite(k){
   document.querySelectorAll('.site-row').forEach(r=>r.classList.toggle('on',(+r.dataset.k)===k));
