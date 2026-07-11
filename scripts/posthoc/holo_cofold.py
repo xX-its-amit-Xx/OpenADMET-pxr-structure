@@ -33,7 +33,12 @@ def main():
     from openprotein.molecules.complex import Complex
     from openprotein.molecules.chains import Ligand
 
-    s = openprotein.connect(username="shenoy.am@northeastern.edu", password="REDACTED_ROTATED")
+    user = os.environ.get("OPENPROTEIN_USERNAME")
+    pw = os.environ.get("OPENPROTEIN_PASSWORD")
+    if not user or not pw:
+        raise SystemExit("Set OPENPROTEIN_USERNAME and OPENPROTEIN_PASSWORD env vars "
+                         "(or source a .env) before running.")
+    s = openprotein.connect(username=user, password=pw)
     print("connected", flush=True)
     holos = load_holos()
     print(f"{len(holos)} holos with SMILES", flush=True)
