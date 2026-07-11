@@ -49,6 +49,11 @@ background:linear-gradient(90deg,#2c6e57 0%,#2c6e57 43%,#5a4a2c 43%,#5a4a2c 56%,
 .bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:8px}
 .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));transition:width .12s linear}
 .stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted #2a2c39}
+.site-row{padding:6px 8px;border-radius:6px;border:1px solid var(--line);margin-bottom:5px;cursor:pointer;font-size:12.5px;transition:border-color .12s}
+.site-row:hover,.site-row.on{border-color:var(--cyan);background:rgba(0,229,255,.06)}
+.whybox{margin-top:8px;padding:9px 11px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);
+font-family:"Trebuchet MS","Segoe UI",sans-serif;font-size:12.5px;line-height:1.5;color:var(--ink);min-height:70px}
+.whybox .cite{color:var(--muted);font-size:11px;font-style:italic}
 </style></head><body><div class="wrap">
 <span class="kicker">post-hoc // 3D pose autopsy</span>
 <h1>The selection wall, in 3D — holo 8CH8 (ligand ULC)</h1>
@@ -76,6 +81,7 @@ and finally the atoms where we missed. Hit play, or drag the <b>scrubber</b> to 
       <span><i class="dot" style="background:var(--red)"></i>far</span>
       <span><i class="dot" style="background:#3b3e54"></i>other samples</span>
     </div>
+    <div id="sitebox" style="display:none;margin-top:14px"></div>
   </div>
 </div>
 
@@ -151,6 +157,35 @@ let V, D, TL=[], PHASES=[], ci=0, playing=false, timer=null;
 let proteinModel, crystalModel, poolModel=null, moverModel=null;
 const PHASELABEL={gen:"generation",pool:"the pool",oracle:"hidden near-native",select:"what confidence picked",refine:"refine to crystal",missed:"where we missed"};
 
+// The 6 worst atoms cluster into 3 chemically & structurally distinct miss-sites (8CH8/ULC).
+// Atom indices are in the JSON's atom order; residues + displacements from crystal-contact analysis.
+const SITES=[
+  {name:"Hydrophobic arm", atoms:[9], group:"tetrahydronaphthalene ring", res:"Ile414 · Phe420 · Leu411", disp:6.6, color:"#ffe66d",
+   why:"The bicyclic hydrophobic ring packs into a large, smooth hydrophobic sub-pocket that offers <b>no directional contacts</b>. Several ring orientations are near-isoenergetic, so the model slotted it into the <b>wrong sub-pocket</b> — a 6.6 Å miss. This is PXR's signature failure: a promiscuous ~1150 Å³ pocket that under-determines the pose.",
+   cite:"Watkins &amp; Redinbo, Science 2001 — PXR LBD promiscuity."},
+  {name:"Polar anchor", atoms:[10,5], group:"thiocarbamate C=S", res:"Ser247 · Gln285 · Cys284", disp:4.2, color:"#ff5a5f",
+   why:"The thiocarbonyl is the ligand's one <b>directional polar handle</b>, reaching the Ser247/Gln285 anchor that pins rifampicin and SR12813. But <b>sulfur is a weak, diffuse H-bond acceptor</b> — a shallow polarity gradient the model couldn't lock onto, so it slipped ~4 Å.",
+   cite:"Chrencik 2005; Watkins 2003 — Ser247/Gln285 agonist anchoring."},
+  {name:"His407 contact", atoms:[0,1,2], group:"methoxypyridine O/N", res:"His407", disp:4.5, color:"#ff9f1c",
+   why:"The methoxypyridine oxygen makes an <b>edge-on contact to His407</b> (3.2 Å) in PXR's polar network near the AF-2 surface. His407's sidechain is mobile and the contact is weak, not a strong H-bond — the model missed it by ~4.5 Å.",
+   cite:"Xue 2007 — His407/His327 polar network."},
+];
+let worstModel=null, hoverLabel=null;
+
+function buildSitebox(){
+  el('sitebox').innerHTML =
+    `<div style="color:var(--muted);margin-bottom:6px">WHERE WE MISSED — hover a site (in 3D or here)</div>`+
+    SITES.map((s,k)=>`<div class="site-row" data-k="${k}" onmouseover="showSite(${k})">`
+      +`<span class="dot" style="background:${s.color}"></span><b>${s.name}</b>`
+      +`<span style="color:var(--muted)"> · ${s.group} · ${s.disp} Å off</span></div>`).join('')
+    +`<div class="whybox" id="whybox"></div>`;
+}
+function showSite(k){
+  document.querySelectorAll('.site-row').forEach(r=>r.classList.toggle('on',(+r.dataset.k)===k));
+  const s=SITES[k];
+  el('whybox').innerHTML=`<b style="color:${s.color}">${s.group}</b> → <b>${s.res}</b><br>${s.why}<br><span class="cite">${s.cite}</span>`;
+}
+
 function frameRMSD(f){ let s=0; for(let a=0;a<f.length;a++){const c=D.crystal_lig[a];
   s+=(f[a][0]-c[0])**2+(f[a][1]-c[1])**2+(f[a][2]-c[2])**2;} return Math.sqrt(s/f.length); }
 
@@ -186,6 +221,8 @@ function buildTimeline(){
 function clearTransient(){
   if(poolModel){V.removeModel(poolModel);poolModel=null;}
   if(moverModel){V.removeModel(moverModel);moverModel=null;}
+  if(worstModel){ V.setHoverable({model:worstModel},false,()=>{},()=>{}); V.removeModel(worstModel); worstModel=null; }
+  if(hoverLabel){ V.removeLabel(hoverLabel); hoverLabel=null; }
   V.removeAllShapes();
 }
 function setPool(upTo, mode){
@@ -200,11 +237,24 @@ function setMover(coords,color,rad){
   moverModel=V.addModel(ligPDB(coords,D.elems),"pdb");
   moverModel.setStyle({},{stick:{radius:rad||.22,color:color},sphere:{scale:.26,color:color}});
 }
-function drawWorst(){
+function drawWorstSites(){
   const s=D.poses[D.selected_idx];
-  D.worst_atoms.forEach(ai=>{ const c=s.lig[ai], cc=D.crystal_lig[ai];
-    V.addSphere({center:{x:c[0],y:c[1],z:c[2]},radius:.7,color:'#ff5a5f',alpha:.55});
-    V.addArrow({start:{x:c[0],y:c[1],z:c[2]},end:{x:cc[0],y:cc[1],z:cc[2]},color:'#ffe66d',radius:.08}); });
+  // hoverable model: one HETATM per worst atom, resSeq = site index+1 so hover maps to a site
+  let pdb="", serial=1;
+  SITES.forEach((site,si)=> site.atoms.forEach(ai=>{ pdb+=atomLine(serial++, D.elems[ai]||'C', si+1, s.lig[ai]); }));
+  worstModel=V.addModel(pdb+"END\n","pdb");
+  SITES.forEach((site,si)=> worstModel.setStyle({resi:si+1},{sphere:{radius:.75,color:site.color,opacity:.6}}));
+  // arrows: pose atom -> where the crystal actually places it
+  SITES.forEach(site=> site.atoms.forEach(ai=>{ const c=s.lig[ai], cc=D.crystal_lig[ai];
+    V.addArrow({start:{x:c[0],y:c[1],z:c[2]},end:{x:cc[0],y:cc[1],z:cc[2]},color:'#ffe66d',radius:.08}); }));
+  // hover -> explain the site
+  V.setHoverable({model:worstModel}, true,
+    (atom)=>{ if(!atom||!atom.resi) return; const k=atom.resi-1; showSite(k);
+      if(hoverLabel) V.removeLabel(hoverLabel);
+      hoverLabel=V.addLabel(SITES[k].name+" · "+SITES[k].res, {position:atom,backgroundColor:'#0b0b12',
+        backgroundOpacity:.9,fontColor:SITES[k].color,fontSize:12,borderColor:SITES[k].color,borderThickness:1});
+      V.render(); },
+    ()=>{ if(hoverLabel){V.removeLabel(hoverLabel);hoverLabel=null;V.render();} });
 }
 
 function render(i){
@@ -232,9 +282,10 @@ function render(i){
       editTxt='but confidence picked this'; glow=`<span class="glow-tag g-red">${e.rmsd.toFixed(2)} A &middot; the selection wall</span>`; break;
     case 'refine': setMover(e.coords, e.dec?'#50fa7b':'#ff5a5f');
       editTxt=e.edit; glow=`<span class="glow-tag ${e.dec?'g-green':'g-red'}">${e.dec?'▼ closer':'▲ farther'} ${e.rmsd.toFixed(2)} A</span>`; break;
-    case 'missed': setMover(e.coords,'#8892b0',.18); drawWorst();
-      editTxt='largest deviations (arrows → crystal)'; glow='<span class="glow-tag g-red">where our pose was most wrong</span>'; break;
+    case 'missed': setMover(e.coords,'#8892b0',.18); buildSitebox(); showSite(0); drawWorstSites();
+      editTxt='hover a highlighted site → why we missed it'; glow='<span class="glow-tag g-red">3 sites · arrows point to the crystal</span>'; break;
   }
+  el('sitebox').style.display = e.phase==='missed' ? 'block' : 'none';
   el('editname').innerHTML=editTxt; el('glowtag').innerHTML=glow;
   // transport UI
   el('scrub').value=ci; el('tlabel').textContent=`${ci+1} / ${TL.length}`;
