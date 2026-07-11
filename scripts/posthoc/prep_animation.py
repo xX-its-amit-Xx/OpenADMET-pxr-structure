@@ -76,8 +76,10 @@ def main():
     sel = int(np.argmax([po["plddt"] for po in poses]))
     print(f"oracle #{oracle}={rmsds[oracle]:.2f}A | confidence pick #{sel}={rmsds[sel]:.2f}A")
 
-    # crystal atoms reordered to pose-atom order (use oracle's mapping as the canonical map)
-    cmap = cx[poses[oracle]["order"]]  # crystal coords in pose-atom order
+    # Canonical display/scoring order = the SELECTED pose's atom order, so the crystal,
+    # the refinement trajectory (built from sel), and worst_atoms all share one atom order.
+    # (Using the oracle's order here desyncs the per-frame RMSD + worst-atom arrows.)
+    cmap = cx[poses[sel]["order"]]  # crystal coords in the selected pose's atom order
 
     # ---- refinement trajectory: confidence pick -> crystal, decomposed ----
     S = poses[sel]["lig"]           # confidence pick ligand (pose-atom order)
@@ -121,7 +123,7 @@ def main():
         "holo": HOLO, "ligcode": LIGCODE,
         "protein_pdb": crystal_protein_pdb(CRYSTAL),
         "crystal_lig": [[round(v, 3) for v in a] for a in cmap.tolist()],
-        "elems": poses[oracle]["el"],
+        "elems": poses[sel]["el"],
         "poses": [{"lig": [[round(v, 3) for v in a] for a in po["lig"].tolist()],
                    "rmsd": round(po["rmsd"], 2), "plddt": round(po["plddt"], 1)} for po in poses],
         "oracle_idx": oracle, "selected_idx": sel,
