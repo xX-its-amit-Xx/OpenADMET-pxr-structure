@@ -36,7 +36,6 @@ MODELS = {
     "esm2_none": "esm2_none_best",
     "boltz1x": "openprotein_boltz1x_best",
     "esmfold2fast": "openprotein_esmfold2fast_best",
-    "minifold": "openprotein_minifold_best",
     "rf3": "openprotein_rf3_best",
     "apo": "apo_best",
     # partial-coverage models (included where present)
@@ -74,13 +73,48 @@ def elem_matched_rmsd(xyzA, elemsA, xyzB, elemsB):
     return float(np.sqrt(np.mean(sq)))
 
 
+_SKIP_HET = {"HOH", "WAT", "NA", "CL", "K", "MG", "ZN", "CA", "SO4", "PO4", "GOL", "EDO", "ACT"}
+
+
+def parse_pose_robust(path):
+    """Robust to ligand convention (LIG/chain B, l01/chain X, L:0/chain X, ...).
+    CA from ATOM CA lines; ligand = any non-water/ion HETATM."""
+    ca, ca_res = {}, {}
+    lig_xyz, lig_elems, lig_bfac = [], [], []
+    for ln in open(path):
+        rec = ln[:6].strip()
+        if rec == "ATOM" and ln[12:16].strip() == "CA":
+            try:
+                rs = int(ln[22:26]); xyz = (float(ln[30:38]), float(ln[38:46]), float(ln[46:54]))
+                ca[rs] = xyz; ca_res[rs] = ln[17:20].strip()
+            except Exception:
+                pass
+        elif rec == "HETATM":
+            resn = ln[17:20].strip().upper()
+            if resn in _SKIP_HET:
+                continue
+            try:
+                xyz = (float(ln[30:38]), float(ln[38:46]), float(ln[46:54]))
+                el = ln[76:78].strip() or "".join(c for c in ln[12:16].strip() if c.isalpha())[:1]
+                bf = float(ln[60:66]) if ln[60:66].strip() else np.nan
+                lig_xyz.append(xyz); lig_elems.append(el.capitalize()); lig_bfac.append(bf)
+            except Exception:
+                pass
+    import numpy as _np
+    return {"ca": {k: _np.array(v) for k, v in ca.items()}, "ca_res": ca_res,
+            "lig_xyz": _np.array(lig_xyz), "lig_elems": lig_elems,
+            "lig_bfac": _np.array(lig_bfac) if lig_bfac else _np.array([_np.nan])}
+
+
 def load_poses(sid):
     poses = {}
     for m, d in MODELS.items():
         f = os.path.join(BASE, d, f"{sid}.pdb")
         if os.path.exists(f) and os.path.getsize(f) > 1000:
             try:
-                poses[m] = pl.parse_pose(f)
+                p = parse_pose_robust(f)
+                if len(p["lig_xyz"]) >= 4 and len(p["ca"]) >= 50:
+                    poses[m] = p
             except Exception:
                 pass
     return poses
@@ -147,10 +181,15 @@ def main():
             "mean_lig_plddt": round(np.mean([frame[m][2] for m in models]), 1),
         })
         for m in models:
+            if m == medoid:
+                rtm = 0.0
+            elif not np.isnan(pw[(m, medoid)]):
+                rtm = round(pw[(m, medoid)], 3)
+            else:
+                rtm = np.nan  # failed comparison -> NaN, not 0 (bugfix)
             long_rows.append({
-                "structure": sid, "model": m,
-                "rmsd_to_medoid": round(pw[(m, medoid)], 3) if m != medoid and not np.isnan(pw[(m, medoid)]) else 0.0,
-                "lig_plddt": round(frame[m][2], 1),
+                "structure": sid, "model": m, "rmsd_to_medoid": rtm,
+                "lig_plddt": round(frame[m][2], 1) if not np.isnan(frame[m][2]) else np.nan,
                 "is_medoid": m == medoid,
             })
         if n % 30 == 0:

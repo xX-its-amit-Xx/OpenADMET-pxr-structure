@@ -106,3 +106,22 @@ ax.set_title("ANCHORING drives agreement: rigid H-bond anchors help, floppy dono
 ax.set_xlim(min(deltas) * 1.5 - 0.2, max(deltas) * 1.5 + 0.3)
 plt.tight_layout(); plt.savefig(f"{OUT}/posthoc_anchoring.png", dpi=140); plt.close()
 print("wrote posthoc_anchoring.png")
+
+# ---------- Fig 4: per-model divergence from consensus (architecture clustering) ----------
+lg = pd.read_parquet("data/processed/posthoc/master_184_long.parquet")
+dev = lg.dropna(subset=["rmsd_to_medoid"]).groupby("model")["rmsd_to_medoid"].median().sort_values()
+fig, ax = plt.subplots(figsize=(8.5, 4.6))
+yb = np.arange(len(dev))[::-1]
+# color: ESM/consensus cluster cyan, outliers pink
+cols = [PINK if v > 4 else (YELLOW if v > 2.4 else CYAN) for v in dev.values]
+ax.barh(yb, dev.values, color=cols, edgecolor=LINE, height=0.66)
+for yi, v in zip(yb, dev.values):
+    ax.text(v + 0.1, yi, f"{v:.1f}A", va="center", color=INK, fontsize=9)
+ax.set_yticks(yb); ax.set_yticklabels(dev.index, fontsize=9.5)
+ax.set_xlabel("median ligand-pose distance from cross-model consensus (A)")
+ax.set_title("Models cluster by ARCHITECTURE, not truth - boltz/decaf are outliers",
+             color=INK, fontsize=11.5, loc="left", pad=10)
+ax.text(0.98, 0.04, "consensus != correctness (no GT for the 184)", transform=ax.transAxes,
+        ha="right", color=MUTED, fontsize=8.5, style="italic")
+plt.tight_layout(); plt.savefig(f"{OUT}/posthoc_permodel.png", dpi=140); plt.close()
+print("wrote posthoc_permodel.png")

@@ -139,6 +139,17 @@ fragment-vs-analog class.</p>
 <p class="muted">Note the worst offenders are mostly small fragments (MW 160-250) - too few
 contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
 ESM2 / OpenFold3 / apo-template prediction.</p>
+<h3>Models cluster by architecture, not by truth</h3>
+<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence"></figure>
+<p>Ranking predictors by median distance from the cross-model consensus exposes a trap:
+the ESM2 family, OpenFold3 and apo-template predictions <b>agree with each other</b> and
+form the "consensus", while <b>Boltz and DeCAF sit ~8.5 A away as systematic outliers</b>.
+But agreement here reflects shared architecture/training, <b>not correctness</b> - and no
+ground truth exists for the 184 to arbitrate. Our winning ensemble was built on the
+Boltz/OF3/AF3 side; this analysis shows that choice was, structurally, a <i>minority</i>
+opinion vs the larger ESM-family cluster. Whether the majority or the minority was right is
+exactly what the challenge could not tell us, and what a proper GT panel (below) is being
+built to answer.</p>
 </section>
 
 <section id="selection-wall">{kicker("finding 3 // the ceiling")}

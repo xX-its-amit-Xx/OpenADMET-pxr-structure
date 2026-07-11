@@ -626,10 +626,10 @@ analysis uses <b>cross-model geometric consensus</b>; where true poses exist (th
 PXR crystal panel) we measure real RMSD and the selection gap.</p>
 <h3>Three findings up front</h3>
 <p><span class="step-number">1</span> <b>The models fundamentally disagree.</b> Median
-cross-model pose disagreement is <b>5.1 A</b> (mean pairwise
+cross-model pose disagreement is <b>4.9 A</b> (mean pairwise
 ligand RMSD across predictors). On most ligands there is no consensus binding mode.</p>
 <p><span class="step-number">2</span> <b>Failure is anchoring ambiguity, not size alone.</b>
-Disagreement scales with size/flexibility (heavy-atom rho +0.28), but the very
+Disagreement scales with size/flexibility (heavy-atom rho +0.26), but the very
 worst cases are <b>small fragments with no directional anchor</b> - fragments split bimodally
 into best- and worst-agreed. Rigid H-bond anchors (aminothiazole, benzimidazole) sharpen
 agreement; floppy multi-donor groups (urea, amide) blur it.</p>
@@ -643,16 +643,27 @@ is broken.</p>
 <h2>12-16 models, ~5A apart</h2>
 <p>For each ligand we superpose every predictor's protein CA onto a common frame and measure
 pairwise ligand RMSD. The median across 184 ligands is
-<b>5.10 A</b> (IQR 4.47-5.60).
-Fragments (4.92 A) and drug-like analogs (5.16 A) disagree <i>almost equally</i> -
+<b>4.87 A</b> (IQR 4.30-5.36).
+Fragments (4.79 A) and drug-like analogs (4.88 A) disagree <i>almost equally</i> -
 the tidy "analogs are harder" story does not hold; disagreement tracks size and anchoring, not
 fragment-vs-analog class.</p>
 <figure><img src="figures/posthoc_disagreement.png" alt="cross-model disagreement"></figure>
 <h3>The 12 most-disagreed ligands (where every model diverges)</h3>
-<table><thead><tr><th>ligand</th><th>pop</th><th>series</th><th>MW</th><th>rotB</th><th>disagree A</th><th>consensus</th><th>medoid</th></tr></thead><tbody><tr><td>x00543-1</td><td>fragment</td><td>FR127</td><td>215</td><td>2</td><td>11.7</td><td>0.29</td><td>esm2_none</td></tr><tr><td>x01382-1</td><td>fragment</td><td>FR90</td><td>225</td><td>1</td><td>10.4</td><td>0.15</td><td>esm2_none</td></tr><tr><td>x01358-1</td><td>fragment</td><td>FR92</td><td>212</td><td>2</td><td>9.5</td><td>0.15</td><td>esm2_none</td></tr><tr><td>x01438-1</td><td>fragment</td><td>FR86</td><td>243</td><td>3</td><td>9.0</td><td>0.15</td><td>esmfold2fast</td></tr><tr><td>x01334-1</td><td>fragment</td><td>FR93</td><td>213</td><td>2</td><td>8.4</td><td>0.15</td><td>apo</td></tr><tr><td>x01131-1</td><td>fragment</td><td>FR101</td><td>175</td><td>1</td><td>8.1</td><td>0.14</td><td>boltz1x</td></tr><tr><td>x01126-1</td><td>fragment</td><td>FR79</td><td>164</td><td>0</td><td>7.9</td><td>0.21</td><td>of3ft</td></tr><tr><td>x01415-1</td><td>fragment</td><td>FR87</td><td>217</td><td>3</td><td>7.6</td><td>0.08</td><td>apo</td></tr><tr><td>x02877-1</td><td>drug_like</td><td>DL17</td><td>342</td><td>3</td><td>7.4</td><td>0.14</td><td>apo</td></tr><tr><td>x01234-1</td><td>drug_like</td><td>DL74</td><td>253</td><td>2</td><td>7.2</td><td>0.15</td><td>esm2_shallow</td></tr><tr><td>x01502-1</td><td>fragment</td><td>FR84</td><td>204</td><td>2</td><td>7.2</td><td>0.15</td><td>of3ft</td></tr><tr><td>x03123-1</td><td>drug_like</td><td>DL42</td><td>402</td><td>7</td><td>7.1</td><td>0.21</td><td>esm2_none</td></tr></tbody></table>
+<table><thead><tr><th>ligand</th><th>pop</th><th>series</th><th>MW</th><th>rotB</th><th>disagree A</th><th>consensus</th><th>medoid</th></tr></thead><tbody><tr><td>x00543-1</td><td>fragment</td><td>FR127</td><td>215</td><td>2</td><td>11.1</td><td>0.31</td><td>esm2_none</td></tr><tr><td>x01382-1</td><td>fragment</td><td>FR90</td><td>225</td><td>1</td><td>9.2</td><td>0.25</td><td>esm2_none</td></tr><tr><td>x01438-1</td><td>fragment</td><td>FR86</td><td>243</td><td>3</td><td>8.9</td><td>0.17</td><td>esm2_full</td></tr><tr><td>x01358-1</td><td>fragment</td><td>FR92</td><td>212</td><td>2</td><td>8.9</td><td>0.17</td><td>rf3</td></tr><tr><td>x01131-1</td><td>fragment</td><td>FR101</td><td>175</td><td>1</td><td>7.9</td><td>0.15</td><td>boltz1x</td></tr><tr><td>x01334-1</td><td>fragment</td><td>FR93</td><td>213</td><td>2</td><td>7.7</td><td>0.25</td><td>apo</td></tr><tr><td>x01126-1</td><td>fragment</td><td>FR79</td><td>164</td><td>0</td><td>7.1</td><td>0.39</td><td>of3ft</td></tr><tr><td>x01415-1</td><td>fragment</td><td>FR87</td><td>217</td><td>3</td><td>7.1</td><td>0.08</td><td>boltz1x</td></tr><tr><td>x02877-1</td><td>drug_like</td><td>DL17</td><td>342</td><td>3</td><td>7.0</td><td>0.23</td><td>esm2_none</td></tr><tr><td>x01502-1</td><td>fragment</td><td>FR84</td><td>204</td><td>2</td><td>7.0</td><td>0.17</td><td>of3ft</td></tr><tr><td>x01234-1</td><td>drug_like</td><td>DL74</td><td>253</td><td>2</td><td>6.7</td><td>0.25</td><td>esm2_shallow</td></tr><tr><td>x03123-1</td><td>drug_like</td><td>DL42</td><td>402</td><td>7</td><td>6.7</td><td>0.23</td><td>esm2_none</td></tr></tbody></table>
 <p class="muted">Note the worst offenders are mostly small fragments (MW 160-250) - too few
 contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
 ESM2 / OpenFold3 / apo-template prediction.</p>
+<h3>Models cluster by architecture, not by truth</h3>
+<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence"></figure>
+<p>Ranking predictors by median distance from the cross-model consensus exposes a trap:
+the ESM2 family, OpenFold3 and apo-template predictions <b>agree with each other</b> and
+form the "consensus", while <b>Boltz and DeCAF sit ~8.5 A away as systematic outliers</b>.
+But agreement here reflects shared architecture/training, <b>not correctness</b> - and no
+ground truth exists for the 184 to arbitrate. Our winning ensemble was built on the
+Boltz/OF3/AF3 side; this analysis shows that choice was, structurally, a <i>minority</i>
+opinion vs the larger ESM-family cluster. Whether the majority or the minority was right is
+exactly what the challenge could not tell us, and what a proper GT panel (below) is being
+built to answer.</p>
 </section>
 
 <section id="selection-wall"><span class="kicker">finding 3 // the ceiling</span>
@@ -689,8 +700,8 @@ clean signal: groups that make a <b>rigid, directional interaction</b> reduce di
 while <b>flexible, multi-rotamer donors</b> increase it.</p>
 <figure><img src="figures/posthoc_anchoring.png" alt="anchoring functional groups"></figure>
 <p>Correlations of disagreement with descriptors (Spearman rho):
-heavy +0.28, TPSA +0.27, MW +0.26,
-rotB +0.25, nAromatic -0.04, cLogP +0.06.
+heavy +0.26, TPSA +0.25, MW +0.25,
+rotB +0.26, nAromatic -0.03, cLogP +0.07.
 Polarity and flexibility drive divergence; aromatic ring count and lipophilicity do not.</p>
 </section>
 
@@ -701,8 +712,8 @@ medoid model, confidence, and properties - is written to
 <code>data/processed/posthoc/master_184.csv</code> (summary) and
 <code>master_184_long.parquet</code> (per-model deviations). Live counts:
 <span class="pill">184 ligands analyzed</span>
-<span class="pill">40 with majority consensus</span>
-<span class="pill">31 pathological (&gt;6A)</span></p>
+<span class="pill">57 with majority consensus</span>
+<span class="pill">22 pathological (&gt;6A)</span></p>
 </section>
 
 <section id="rebuild"><span class="kicker">in progress // methods we skipped</span>
