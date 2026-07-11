@@ -52,8 +52,8 @@ learned_sel = float(np.median(_L))
 corrs = {c: spearmanr(d[c], d["disagreement_mean_pw_rmsd"], nan_policy="omit")[0]
          for c in ["heavy", "mw", "tpsa", "rotb", "clogp", "narom"]}
 
-SECTIONS = ["overview", "disagreement", "selection-wall", "failure-modes",
-            "per-ligand", "rebuild", "methods"]
+SECTIONS = ["overview", "watch-it", "disagreement", "selection-wall", "failure-modes",
+            "per-ligand", "rebuild", "release", "thanks", "methods"]
 
 
 def kicker(t): return f'<span class="kicker">{t}</span>'
@@ -123,6 +123,17 @@ agreement; floppy multi-donor groups (urea, amide) blur it.</p>
 pool contains sub-2A poses (<b>oracle {oracle:.2f} A</b>, 59% &lt;2A) but the best confidence
 signal selects only <b>{best_sel:.2f} A</b> - barely above random. Generation works; selection
 is broken.</p>
+</section>
+
+<section id="watch-it">{kicker("interactive // watch the wall")}
+<h2>See the selection wall in 3D</h2>
+<p>For holo 8CH8 the pool held a <b>0.59 A</b> pose; confidence picked <b>2.36 A</b>. The
+interactive viewer plays the whole story - the 20-pose spread, the hidden near-perfect pose,
+the pose we actually chose, then a decomposed refinement to the crystal where <b>each edit
+glows green (closer) or red (farther)</b>, and finally the atoms where we missed most.</p>
+<p><a href="posthoc_animation.html" style="font-size:16px">&#9654; Open the interactive 3D pose autopsy &rarr;</a>
+<span class="muted"> (WebGL / 3Dmol.js; a multi-model AF3/Boltz2/ESMFold version from the
+LatchBio-sponsored sampling run is being added).</span></p>
 </section>
 
 <section id="disagreement">{kicker("finding 1 // consensus")}
@@ -215,6 +226,28 @@ features carry the missing signal.</p>
 <p><span class="step-number">C</span> <b>Fresh co-folds</b> (Boltz, OpenProtein RF3/ESMFold)
 with deeper sampling on the pathological fragments.</p>
 <p class="muted">This section updates as each backend returns.</p>
+</section>
+
+<section id="release">{kicker("open data // for the community")}
+<h2>All poses released for public benefit</h2>
+<p>Every pose generated in this campaign - the full multi-model pool for all 184 test ligands
+(Boltz-1/2, OpenFold3, AF3, Chai, Protenix v2, ESMFold2, RoseTTAFold3, apo templates, and the
+LatchBio-sponsored AF3 sampling) - is being packaged with <b>proper per-pose labels</b>
+(ligand SMILES, model, confidence signals, cross-model disagreement, ligand properties) and
+published openly so others can benefit from the compute already spent. See
+<code>data/processed/posthoc/</code> and the released dataset bundle. If a good pose exists in
+this pool for a ligand that a future method can learn to <i>select</i>, that is the open problem
+this data exists to help solve.</p>
+</section>
+
+<section id="thanks">{kicker("gratitude")}
+<h2>&#128077; Huge thanks to LatchBio</h2>
+<p><b>This work was sponsored in its final leg by <a href="https://latch.bio">LatchBio</a>.</b>
+Their generous <b>$500 in compute credits</b> powered <b>additional AlphaFold3 pose sampling</b> -
+deepening the pose pool exactly where our models struggled most (the pathological small-fragment
+and long-tail cases). That sampling is feeding the multi-model 3D autopsy above, and every pose
+it produced is being <b>published for the public to benefit</b>. Thank you, LatchBio, for backing
+open, reproducible structural science. &#128153;</p>
 </section>
 
 <section id="methods">{kicker("repro")}

@@ -6,7 +6,7 @@ Master pointer for the OpenADMET PXR Structure-track close-out. All paths relati
 
 - **[../README.md](../README.md)** — entry point: status, repo layout, current best, how to run, ceiling.
 - **[final_submission_pixel_report.html](final_submission_pixel_report.html)** — polished single-page final submission narrative in pixel/late-night style.
-- **[posthoc_analysis.html](posthoc_analysis.html)** — 🔬 **post-hoc autopsy** (continually updated): per-pose analysis of all 184, cross-model disagreement, the quantified selection wall, anchoring failure modes, and rebuilt methods.
+- **[posthoc_analysis.html](posthoc_analysis.html)** + **[posthoc_animation.html](posthoc_animation.html)** (3D) — 🔬 **post-hoc autopsy** (continually updated): per-pose analysis of all 184, cross-model disagreement, the quantified selection wall, anchoring failure modes, and rebuilt methods.
 - **[methodology.md](methodology.md)** — full write-up of the `#262 IPDE-select` method, validation pipeline, pre-flight gates.
 - **[iterations.md](iterations.md)** — iter 1–7 narrative: what was tried, what worked, what failed, why.
 

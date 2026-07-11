@@ -1,0 +1,194 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PXR Post-Hoc — 3D Pose Autopsy (8CH8)</title>
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+<style>
+:root{--bg:#0b0b12;--panel:#171821;--panel2:#202233;--ink:#f7f1db;--muted:#b8b2a2;
+--cyan:#00e5ff;--pink:#ff3d81;--green:#50fa7b;--yellow:#ffe66d;--orange:#ff9f1c;--red:#ff5a5f;--line:#3f4256}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",sans-serif;
+background-image:radial-gradient(circle at 1px 1px,#15161f 1px,transparent 0);background-size:18px 18px}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+.kicker{font-family:Consolas,monospace;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;font-size:12px}
+h1{font-size:26px;margin:6px 0 4px}h2{font-size:19px;margin:26px 0 8px}
+p{color:var(--muted);line-height:1.55;max-width:820px}
+a{color:var(--cyan)}
+.stage{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-top:14px}
+@media(max-width:900px){.stage{grid-template-columns:1fr}}
+#view{position:relative;width:100%;height:560px;background:#08080e;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.side{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;font-family:Consolas,monospace;font-size:13px}
+.rmsd{font-size:40px;font-weight:bold;font-family:Consolas,monospace;line-height:1}
+.rmsd .u{font-size:16px;color:var(--muted)}
+.edit-name{color:var(--yellow);margin:8px 0 2px;min-height:20px}
+.glow-tag{display:inline-block;padding:2px 10px;border-radius:4px;font-weight:bold;margin-top:6px}
+.g-green{background:rgba(80,250,123,.15);color:var(--green);border:1px solid var(--green)}
+.g-red{background:rgba(255,90,95,.15);color:var(--red);border:1px solid var(--red)}
+.caption{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(11,11,18,.82);border:1px solid var(--line);
+border-radius:6px;padding:10px 14px;font-family:Consolas,monospace;font-size:13.5px;color:var(--ink)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;
+padding:8px 14px;font-family:Consolas,monospace;font-size:13px;cursor:pointer}
+button:hover{border-color:var(--cyan);color:var(--cyan)}
+button.act{background:transparent}
+.legend{margin-top:12px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-block;margin-right:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green))}
+.stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted #2a2c39}
+</style></head><body><div class="wrap">
+<span class="kicker">post-hoc // 3D pose autopsy</span>
+<h1>The selection wall, in 3D — holo 8CH8 (ligand ULC)</h1>
+<p>The pool of sampled poses <b>contained a near-perfect 0.59&nbsp;A pose</b>. Our confidence-based
+selection picked a <b>2.36&nbsp;A</b> one instead. Watch the miss, then watch what it would have taken
+to reach the crystal (gold) — each edit glows <span style="color:var(--green)">green</span> when it moves
+us closer, <span style="color:var(--red)">red</span> when it moves us away. This is the whole campaign's
+ceiling made literal.</p>
+
+<div class="stage">
+  <div id="view"><div class="caption" id="cap">Loading…</div></div>
+  <div class="side">
+    <div style="color:var(--muted)">RMSD to crystal</div>
+    <div class="rmsd"><span id="rmsdv">—</span><span class="u"> A</span></div>
+    <div class="bar"><i id="rbar" style="width:0%"></i></div>
+    <div class="edit-name" id="editname">&nbsp;</div>
+    <div id="glowtag"></div>
+    <hr style="border-color:var(--line);margin:14px 0">
+    <div id="stats"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--yellow)"></i>crystal (truth)</span>
+      <span><i class="dot" style="background:var(--green)"></i>near-native</span>
+      <span><i class="dot" style="background:var(--red)"></i>far</span>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="act" onclick="act1()">① The pool (20 poses)</button>
+  <button class="act" onclick="act2()">② The hidden 0.59&nbsp;A pose</button>
+  <button class="act" onclick="act3()">③ What we picked (2.36&nbsp;A)</button>
+  <button class="act" onclick="playRefine()">④ ▶ Refine to crystal</button>
+  <button class="act" onclick="act5()">⑤ Where we missed</button>
+</div>
+<p style="margin-top:22px;font-size:13px">Data: 20 Boltz sampled poses vs the re-refined 8CH8 crystal (novel post-cutoff holo, so no
+training leakage). Ligand atoms aligned in the true crystal protein frame via residue-identity
+superposition. A multi-model version (AF3 / Boltz2 / ESMFold / Protenix) is being generated from the
+LatchBio-sponsored AF3 sampling run and will be added here. &larr; <a href="posthoc_analysis.html">back to the autopsy</a></p>
+
+<script>
+let V, D, mover=null, poseModels=[], crystalModel, proteinModel;
+const el=id=>document.getElementById(id);
+function ligPDB(coords, elems){
+  let s="";
+  for(let i=0;i<coords.length;i++){
+    const c=coords[i], e=elems[i].toUpperCase().padStart(2,' ');
+    s+=`HETATM${(i+1).toString().padStart(5)} ${e.padEnd(4)} LIG X   1    `
+      +`${c[0].toFixed(3).padStart(8)}${c[1].toFixed(3).padStart(8)}${c[2].toFixed(3).padStart(8)}`
+      +`  1.00  0.00          ${e.trim().padStart(2)}\n`;
+  }
+  return s+"END\n";
+}
+const rmsdColor=r=> r<1?"#50fa7b": r<2?"#a6f56b": r<3?"#ffe66d": r<4.5?"#ff9f1c":"#ff5a5f";
+function setRMSD(r,decreasing){
+  el('rmsdv').textContent=r.toFixed(2);
+  el('rbar').style.width=Math.max(2,Math.min(100,100-(r/6*100)))+"%";
+}
+function cap(t){el('cap').innerHTML=t;}
+
+function clearPoses(){poseModels.forEach(m=>V.removeModel(m));poseModels=[];}
+function showMover(coords,color){
+  if(mover) V.removeModel(mover);
+  mover=V.addModel(ligPDB(coords,D.elems),"pdb");
+  mover.setStyle({},{stick:{radius:.22,color:color},sphere:{scale:.28,color:color}});
+}
+
+function act1(){
+  clearPoses(); if(mover){V.removeModel(mover);mover=null;}
+  el('editname').innerHTML='&nbsp;'; el('glowtag').innerHTML='';
+  D.poses.forEach(p=>{
+    const m=V.addModel(ligPDB(p.lig,D.elems),"pdb");
+    m.setStyle({},{stick:{radius:.08,color:rmsdColor(p.rmsd)},sphere:{scale:.12,color:rmsdColor(p.rmsd)}});
+    poseModels.push(m);
+  });
+  setRMSD(D.stats.spread,false);
+  cap(`<b>20 sampled poses.</b> Spread ${D.stats.spread} A &middot; from ${D.stats.pool_min} A (great) to ${D.stats.pool_max} A (lost). The crystal is gold.`);
+  V.render();
+}
+function act2(){
+  clearPoses();
+  const o=D.poses[D.oracle_idx];
+  showMover(o.lig,"#50fa7b");
+  setRMSD(o.rmsd,true);
+  el('editname').innerHTML='the pool already had it';
+  el('glowtag').innerHTML=`<span class="glow-tag g-green">${o.rmsd.toFixed(2)} A &middot; near-perfect</span>`;
+  cap(`<b>Buried in the pool: a ${o.rmsd.toFixed(2)} A pose.</b> Essentially the crystal answer. Generation was NOT the problem.`);
+  V.render();
+}
+function act3(){
+  clearPoses();
+  const s=D.poses[D.selected_idx];
+  showMover(s.lig,"#ff5a5f");
+  setRMSD(s.rmsd,false);
+  el('editname').innerHTML='but confidence picked this';
+  el('glowtag').innerHTML=`<span class="glow-tag g-red">${s.rmsd.toFixed(2)} A &middot; the selection wall</span>`;
+  cap(`<b>Confidence (pLDDT) selected this ${s.rmsd.toFixed(2)} A pose.</b> The ${D.stats.oracle_rmsd} A answer was right there — no signal could find it.`);
+  V.render();
+}
+function playRefine(){
+  clearPoses();
+  const F=D.traj_frames, E=D.edits;
+  let i=0, prev=null;
+  cap('<b>Refining the pick toward the crystal.</b> Each edit glows green if it lowers RMSD, red if it raises it.');
+  function frameEdit(fi){for(const e of E){if(fi>=e.start_frame&&fi<=e.end_frame)return e;}return E[E.length-1];}
+  function step(){
+    if(i>=F.length){el('glowtag').innerHTML=`<span class="glow-tag g-green">reached ${rmsdNow.toFixed(2)} A</span>`;return;}
+    const coords=F[i];
+    // compute rmsd to crystal for this frame
+    let s=0; for(let a=0;a<coords.length;a++){const c=D.crystal_lig[a];s+=(coords[a][0]-c[0])**2+(coords[a][1]-c[1])**2+(coords[a][2]-c[2])**2;}
+    var rmsdNow=Math.sqrt(s/coords.length);
+    const decreasing = prev===null? true : rmsdNow<=prev+1e-3;
+    showMover(coords, decreasing?"#50fa7b":"#ff5a5f");
+    setRMSD(rmsdNow,decreasing);
+    const e=frameEdit(i);
+    el('editname').innerHTML=e.name;
+    el('glowtag').innerHTML=`<span class="glow-tag ${decreasing?'g-green':'g-red'}">${decreasing?'▼ closer':'▲ farther'} ${rmsdNow.toFixed(2)} A</span>`;
+    V.render(); prev=rmsdNow; i++;
+    setTimeout(step, 90);
+  }
+  step();
+}
+function act5(){
+  clearPoses();
+  const s=D.poses[D.selected_idx];
+  showMover(s.lig,"#8892b0");
+  // highlight worst atoms as big red spheres
+  D.worst_atoms.forEach(ai=>{
+    const c=s.lig[ai];
+    V.addSphere({center:{x:c[0],y:c[1],z:c[2]},radius:.7,color:'#ff5a5f',alpha:.55});
+    const cc=D.crystal_lig[ai];
+    V.addArrow({start:{x:c[0],y:c[1],z:c[2]},end:{x:cc[0],y:cc[1],z:cc[2]},color:'#ffe66d',radius:.08});
+  });
+  setRMSD(s.rmsd,false);
+  el('editname').innerHTML='largest deviations (yellow arrows -> crystal)';
+  el('glowtag').innerHTML='<span class="glow-tag g-red">where our pose was most wrong</span>';
+  cap('<b>Where we missed.</b> Red = atoms furthest from truth; yellow arrows point to where the crystal actually places them. The core sits in the wrong sub-pocket rotamer.');
+  V.render();
+}
+
+fetch("anim_8CH8.json").then(r=>r.json()).then(d=>{
+  D=d;
+  V=$3Dmol.createViewer("view",{backgroundColor:"#08080e"});
+  proteinModel=V.addModel(D.protein_pdb,"pdb");
+  proteinModel.setStyle({},{cartoon:{color:"#2b3a55",opacity:.55}});
+  crystalModel=V.addModel(ligPDB(D.crystal_lig,D.elems),"pdb");
+  crystalModel.setStyle({},{stick:{radius:.16,color:"#ffe66d"}});
+  V.zoomTo({model:crystalModel}); V.zoom(0.55); V.render();
+  el('stats').innerHTML=Object.entries({
+    'holo':D.holo+' ('+D.ligcode+')','poses':D.stats.n_poses,
+    'pool best (oracle)':D.stats.oracle_rmsd+' A','we picked':D.stats.selected_rmsd+' A',
+    'pool worst':D.stats.pool_max+' A'
+  }).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  act1();
+});
+</script>
+</div></body></html>
