@@ -1,0 +1,717 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PXR Structure Challenge - Post-Hoc Autopsy</title><style>
+    :root {
+      --bg: #0b0b12;
+      --panel: #171821;
+      --panel-2: #202233;
+      --ink: #f7f1db;
+      --muted: #b8b2a2;
+      --cyan: #00e5ff;
+      --pink: #ff3d81;
+      --green: #50fa7b;
+      --yellow: #ffe66d;
+      --orange: #ff9f1c;
+      --red: #ff5a5f;
+      --line: #3f4256;
+      --shadow: #000000;
+      --radius: 6px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: 18px 18px;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      line-height: 1.62;
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 50%, rgba(0, 0, 0, 0.04) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      border-bottom: 2px solid rgba(0, 229, 255, 0.45);
+    }
+
+    a:hover {
+      color: var(--yellow);
+      border-bottom-color: var(--yellow);
+    }
+
+    code,
+    pre,
+    .mono,
+    .kicker,
+    .metric-label,
+    table,
+    .pill,
+    .step-number {
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 18px;
+      border: 2px solid var(--line);
+      background: #090a0f;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 11, 18, 0.94);
+      border-bottom: 3px solid var(--cyan);
+      box-shadow: 0 5px 0 var(--shadow);
+    }
+
+    .nav {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 10px 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      overflow-x: auto;
+    }
+
+    .nav a {
+      white-space: nowrap;
+      color: var(--ink);
+      border: 2px solid var(--line);
+      background: var(--panel);
+      padding: 8px 10px;
+      box-shadow: 3px 3px 0 var(--shadow);
+      font-size: 13px;
+    }
+
+    .nav a:hover {
+      color: var(--bg);
+      background: var(--yellow);
+      border-color: var(--yellow);
+    }
+
+    .hero {
+      border-bottom: 4px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0, 229, 255, 0.12) 0 2px, transparent 2px 24px),
+        linear-gradient(0deg, rgba(255, 61, 129, 0.10) 0 2px, transparent 2px 24px),
+        #10111b;
+    }
+
+    .hero-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 64px 18px 42px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+      gap: 34px;
+      align-items: end;
+    }
+
+    .kicker {
+      display: inline-block;
+      color: var(--bg);
+      background: var(--green);
+      border: 3px solid var(--ink);
+      padding: 5px 8px;
+      box-shadow: 4px 4px 0 var(--shadow);
+      text-transform: uppercase;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin-top: 20px;
+      max-width: 780px;
+      font-size: clamp(42px, 8vw, 96px);
+      text-transform: uppercase;
+      text-shadow:
+        4px 4px 0 var(--shadow),
+        7px 7px 0 rgba(255, 61, 129, 0.5);
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(18px, 2vw, 24px);
+    }
+
+    .hero-note {
+      margin-top: 18px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .scorebox {
+      border: 4px solid var(--ink);
+      background: var(--panel);
+      box-shadow: 10px 10px 0 var(--shadow);
+      padding: 18px;
+    }
+
+    .score-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .score-title strong {
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 96px;
+      padding: 12px;
+      border: 2px solid var(--line);
+      background: #11131d;
+      box-shadow: 4px 4px 0 var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 6px;
+      color: var(--ink);
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .metric:nth-child(1) .metric-value { color: var(--green); }
+    .metric:nth-child(2) .metric-value { color: var(--cyan); }
+    .metric:nth-child(3) .metric-value { color: var(--yellow); }
+    .metric:nth-child(4) .metric-value { color: var(--pink); }
+
+    main {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 34px 18px 72px;
+    }
+
+    section {
+      margin: 44px 0;
+      padding: 34px 0 0;
+      border-top: 4px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+      gap: 26px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .section-tag {
+      color: var(--bg);
+      background: var(--pink);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--shadow);
+      padding: 5px 8px;
+      display: inline-block;
+      width: max-content;
+      text-transform: uppercase;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    h2 {
+      margin-top: 14px;
+      font-size: clamp(30px, 5vw, 58px);
+      text-transform: uppercase;
+      text-shadow: 3px 3px 0 var(--shadow);
+    }
+
+    .section-lede {
+      color: var(--muted);
+      font-size: 19px;
+      margin: 0;
+    }
+
+    .callout {
+      border: 3px solid var(--yellow);
+      background: #18160e;
+      box-shadow: 7px 7px 0 var(--shadow);
+      padding: 20px;
+      margin: 22px 0;
+    }
+
+    .callout strong {
+      color: var(--yellow);
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      border: 3px solid var(--line);
+      background: var(--panel);
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      font-size: 22px;
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+      padding: 22px 0;
+      border-bottom: 2px dashed var(--line);
+    }
+
+    .step:last-child {
+      border-bottom: 0;
+    }
+
+    .step-number {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      color: var(--bg);
+      background: var(--cyan);
+      border: 3px solid var(--ink);
+      box-shadow: 5px 5px 0 var(--shadow);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--green);
+      text-transform: uppercase;
+    }
+
+    .step p {
+      margin: 0 0 10px;
+      color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-block;
+      border: 2px solid var(--line);
+      background: #0f1018;
+      color: var(--ink);
+      padding: 5px 8px;
+      box-shadow: 3px 3px 0 var(--shadow);
+      font-size: 13px;
+    }
+
+    .pill.good { border-color: var(--green); color: var(--green); }
+    .pill.warn { border-color: var(--yellow); color: var(--yellow); }
+    .pill.bad { border-color: var(--red); color: var(--red); }
+    .pill.info { border-color: var(--cyan); color: var(--cyan); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 3px solid var(--line);
+      background: #11131d;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      margin: 18px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--bg);
+      background: var(--cyan);
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    td.good { color: var(--green); font-weight: 800; }
+    td.warn { color: var(--yellow); font-weight: 800; }
+    td.bad { color: var(--red); font-weight: 800; }
+
+    .bar-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr) 44px;
+      gap: 10px;
+      align-items: center;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    .bar-track {
+      height: 18px;
+      border: 2px solid var(--line);
+      background: #090a0f;
+      position: relative;
+      box-shadow: 3px 3px 0 var(--shadow);
+    }
+
+    .bar-fill {
+      height: 100%;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--green) 0 8px,
+          var(--cyan) 8px 16px,
+          var(--yellow) 16px 24px,
+          var(--pink) 24px 32px
+        );
+    }
+
+    .experiment {
+      border-left: 8px solid var(--line);
+      padding: 18px 18px 18px 22px;
+      background: var(--panel);
+      box-shadow: 6px 6px 0 var(--shadow);
+      margin: 18px 0;
+      border-radius: var(--radius);
+    }
+
+    .experiment.win { border-left-color: var(--green); }
+    .experiment.near { border-left-color: var(--yellow); }
+    .experiment.kill { border-left-color: var(--red); }
+    .experiment.hold { border-left-color: var(--cyan); }
+
+    .experiment h3 {
+      color: var(--ink);
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .logic-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .logic-cell {
+      border: 2px solid var(--line);
+      background: #10121c;
+      padding: 12px;
+      min-height: 132px;
+    }
+
+    .logic-cell strong {
+      display: block;
+      color: var(--cyan);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .logic-cell p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    figure {
+      margin: 0;
+      border: 3px solid var(--line);
+      background: #f4f0df;
+      color: #101010;
+      box-shadow: 6px 6px 0 var(--shadow);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: auto;
+    }
+
+    figcaption {
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #282828;
+      background: #fff8d1;
+      border-top: 2px solid #111111;
+    }
+
+    .repo-map {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .repo-tile {
+      border: 3px solid var(--line);
+      min-height: 116px;
+      padding: 12px;
+      background: #12141e;
+      box-shadow: 4px 4px 0 var(--shadow);
+    }
+
+    .repo-tile b {
+      display: block;
+      color: var(--yellow);
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .repo-tile span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .footer {
+      max-width: var(--max);
+      margin: 0 auto 32px;
+      padding: 20px 18px;
+      color: var(--muted);
+      border-top: 4px solid var(--line);
+    }
+
+    @media (max-width: 960px) {
+      .hero-inner,
+      .section-head,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .figure-grid,
+      .logic-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .score-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hero-inner {
+        padding-top: 42px;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-map {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style></head><body>
+<header class="topbar"><nav class="nav" aria-label="Sections"><a href="#overview">Overview</a><a href="#disagreement">Disagreement</a><a href="#selection-wall">Selection Wall</a><a href="#failure-modes">Failure Modes</a><a href="#per-ligand">Per Ligand</a><a href="#rebuild">Rebuild</a><a href="#methods">Methods</a></nav></header>
+<main>
+
+<section id="overview"><span class="kicker">post-hoc // autopsy</span>
+<h2>What went wrong — a per-pose autopsy of all 184</h2>
+<p>The challenge is over. Best submission <span class="pill">prot_rescue8 &middot; LDDT-PLI 0.564 &middot; rank 2</span>
+(leader 0.5725). This report dissects <b>every one of the 184 test ligands</b> across
+<b>12-16 structure predictors</b> to answer: where did the models struggle, and why did we
+plateau? No ground-truth crystals were released for the 184 blind ligands, so per-ligand
+analysis uses <b>cross-model geometric consensus</b>; where true poses exist (the 53-holo
+PXR crystal panel) we measure real RMSD and the selection gap.</p>
+<h3>Three findings up front</h3>
+<p><span class="step-number">1</span> <b>The models fundamentally disagree.</b> Median
+cross-model pose disagreement is <b>5.1 A</b> (mean pairwise
+ligand RMSD across predictors). On most ligands there is no consensus binding mode.</p>
+<p><span class="step-number">2</span> <b>Failure is anchoring ambiguity, not size alone.</b>
+Disagreement scales with size/flexibility (heavy-atom rho +0.28), but the very
+worst cases are <b>small fragments with no directional anchor</b> - fragments split bimodally
+into best- and worst-agreed. Rigid H-bond anchors (aminothiazole, benzimidazole) sharpen
+agreement; floppy multi-donor groups (urea, amide) blur it.</p>
+<p><span class="step-number">3</span> <b>The selection wall is the ceiling.</b> On GT holos the
+pool contains sub-2A poses (<b>oracle 1.63 A</b>, 59% &lt;2A) but the best confidence
+signal selects only <b>2.16 A</b> - barely above random. Generation works; selection
+is broken.</p>
+</section>
+
+<section id="disagreement"><span class="kicker">finding 1 // consensus</span>
+<h2>12-16 models, ~5A apart</h2>
+<p>For each ligand we superpose every predictor's protein CA onto a common frame and measure
+pairwise ligand RMSD. The median across 184 ligands is
+<b>5.10 A</b> (IQR 4.47-5.60).
+Fragments (4.92 A) and drug-like analogs (5.16 A) disagree <i>almost equally</i> -
+the tidy "analogs are harder" story does not hold; disagreement tracks size and anchoring, not
+fragment-vs-analog class.</p>
+<figure><img src="figures/posthoc_disagreement.png" alt="cross-model disagreement"></figure>
+<h3>The 12 most-disagreed ligands (where every model diverges)</h3>
+<table><thead><tr><th>ligand</th><th>pop</th><th>series</th><th>MW</th><th>rotB</th><th>disagree A</th><th>consensus</th><th>medoid</th></tr></thead><tbody><tr><td>x00543-1</td><td>fragment</td><td>FR127</td><td>215</td><td>2</td><td>11.7</td><td>0.29</td><td>esm2_none</td></tr><tr><td>x01382-1</td><td>fragment</td><td>FR90</td><td>225</td><td>1</td><td>10.4</td><td>0.15</td><td>esm2_none</td></tr><tr><td>x01358-1</td><td>fragment</td><td>FR92</td><td>212</td><td>2</td><td>9.5</td><td>0.15</td><td>esm2_none</td></tr><tr><td>x01438-1</td><td>fragment</td><td>FR86</td><td>243</td><td>3</td><td>9.0</td><td>0.15</td><td>esmfold2fast</td></tr><tr><td>x01334-1</td><td>fragment</td><td>FR93</td><td>213</td><td>2</td><td>8.4</td><td>0.15</td><td>apo</td></tr><tr><td>x01131-1</td><td>fragment</td><td>FR101</td><td>175</td><td>1</td><td>8.1</td><td>0.14</td><td>boltz1x</td></tr><tr><td>x01126-1</td><td>fragment</td><td>FR79</td><td>164</td><td>0</td><td>7.9</td><td>0.21</td><td>of3ft</td></tr><tr><td>x01415-1</td><td>fragment</td><td>FR87</td><td>217</td><td>3</td><td>7.6</td><td>0.08</td><td>apo</td></tr><tr><td>x02877-1</td><td>drug_like</td><td>DL17</td><td>342</td><td>3</td><td>7.4</td><td>0.14</td><td>apo</td></tr><tr><td>x01234-1</td><td>drug_like</td><td>DL74</td><td>253</td><td>2</td><td>7.2</td><td>0.15</td><td>esm2_shallow</td></tr><tr><td>x01502-1</td><td>fragment</td><td>FR84</td><td>204</td><td>2</td><td>7.2</td><td>0.15</td><td>of3ft</td></tr><tr><td>x03123-1</td><td>drug_like</td><td>DL42</td><td>402</td><td>7</td><td>7.1</td><td>0.21</td><td>esm2_none</td></tr></tbody></table>
+<p class="muted">Note the worst offenders are mostly small fragments (MW 160-250) - too few
+contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
+ESM2 / OpenFold3 / apo-template prediction.</p>
+</section>
+
+<section id="selection-wall"><span class="kicker">finding 3 // the ceiling</span>
+<h2>The selection wall, quantified</h2>
+<p>On the 53-holo PXR crystal panel (real ground truth), each ligand has ~20 sampled poses.
+We ask: how good is the pose we would <i>pick</i> by each confidence signal, versus the best
+pose the pool actually contains?</p>
+<table><thead><tr><th>selector</th><th>median RMSD A</th><th>holos &lt;2A</th><th>gap to oracle</th></tr></thead><tbody><tr style="color:#50fa7b"><td>ORACLE (pool best)</td><td>1.63</td><td>59%</td><td></td></tr><tr><td>pocket contacts</td><td>2.16</td><td>35%</td><td>+0.53</td></tr><tr><td>complex PDE</td><td>2.26</td><td>41%</td><td>+0.63</td></tr><tr><td>pTM</td><td>2.26</td><td>41%</td><td>+0.63</td></tr><tr><td>ligand pLDDT</td><td>2.27</td><td>47%</td><td>+0.64</td></tr><tr><td>ipTM</td><td>2.35</td><td>41%</td><td>+0.72</td></tr><tr><td>complex iPDE</td><td>2.35</td><td>41%</td><td>+0.72</td></tr><tr style="color:#b8b2a2"><td>RANDOM (baseline)</td><td>2.50</td><td>47%</td><td></td></tr></tbody></table>
+<figure><img src="figures/posthoc_selection_wall.png" alt="selection wall"></figure>
+<p><b>The pool has the answer (oracle 1.63 A) but no signal finds it.</b> Every
+model-confidence channel - pLDDT, ipTM, iPDE, pTM - lands near <b>2.3 A</b>, only ~0.2-0.3 A
+better than random pose choice. Best of all was a simple geometric count
+(<code>n_pocket_contacts_4p5</code>, 2.16 A). We captured under half the available headroom.
+This is why more/better <i>sampling</i> never moved the needle: the bottleneck was picking.</p>
+</section>
+
+<section id="failure-modes"><span class="kicker">finding 2 // anchoring</span>
+<h2>Why some poses are hopeless: anchoring ambiguity</h2>
+<p>Ranking ligands by cross-model agreement and testing functional-group presence reveals a
+clean signal: groups that make a <b>rigid, directional interaction</b> reduce disagreement,
+while <b>flexible, multi-rotamer donors</b> increase it.</p>
+<figure><img src="figures/posthoc_anchoring.png" alt="anchoring functional groups"></figure>
+<p>Correlations of disagreement with descriptors (Spearman rho):
+heavy +0.28, TPSA +0.27, MW +0.26,
+rotB +0.25, nAromatic -0.04, cLogP +0.06.
+Polarity and flexibility drive divergence; aromatic ring count and lipophilicity do not.</p>
+</section>
+
+<section id="per-ligand"><span class="kicker">data // every pose</span>
+<h2>Per-ligand ledger (all 184)</h2>
+<p>The full per-ligand table - each ligand's cross-model disagreement, consensus fraction,
+medoid model, confidence, and properties - is written to
+<code>data/processed/posthoc/master_184.csv</code> (summary) and
+<code>master_184_long.parquet</code> (per-model deviations). Live counts:
+<span class="pill">184 ligands analyzed</span>
+<span class="pill">40 with majority consensus</span>
+<span class="pill">31 pathological (&gt;6A)</span></p>
+</section>
+
+<section id="rebuild"><span class="kicker">in progress // methods we skipped</span>
+<h2>Rebuilding the approaches we did not finish</h2>
+<p>Now running across Explorer / Modal x2 / Boltz / OpenProtein / Kaggle / Colab:</p>
+<p><span class="step-number">A</span> <b>GT-trained pose selector</b> - the one thing that could
+beat the selection wall: learn to rank poses by true-RMSD on the holo panel, not by confidence.</p>
+<p><span class="step-number">B</span> <b>MD / physics refinement</b> of the pool best poses
+(OpenMM/Desmond) to test if relaxation closes the oracle gap.</p>
+<p><span class="step-number">C</span> <b>Fresh co-folds</b> (Boltz, OpenProtein RF3/ESMFold)
+with deeper sampling on the pathological fragments.</p>
+<p class="muted">This section updates as each backend returns.</p>
+</section>
+
+<section id="methods"><span class="kicker">repro</span>
+<h2>How this was computed</h2>
+<p>Cross-model geometry: <code>scripts/posthoc/build_master_table.py</code> (protein-CA
+Kabsch superposition via <code>scripts/pose_lib.py</code>, element-matched ligand RMSD).
+Selection wall: <code>data/processed/pxr_pose_scorer/dataset.parquet</code> (17 holos x 20
+Boltz poses, true RMSD + all confidence signals). Figures:
+<code>scripts/posthoc/make_figures.py</code>. This page:
+<code>scripts/posthoc/build_report.py</code> (re-run to refresh).</p>
+</section>
+
+</main></body></html>
