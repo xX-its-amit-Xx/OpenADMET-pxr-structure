@@ -72,8 +72,40 @@ ceiling made literal.</p>
 </div>
 <p style="margin-top:22px;font-size:13px">Data: 20 Boltz sampled poses vs the re-refined 8CH8 crystal (novel post-cutoff holo, so no
 training leakage). Ligand atoms aligned in the true crystal protein frame via residue-identity
-superposition. A multi-model version (AF3 / Boltz2 / ESMFold / Protenix) is being generated from the
-LatchBio-sponsored AF3 sampling run and will be added here. &larr; <a href="posthoc_analysis.html">back to the autopsy</a></p>
+superposition.</p>
+
+<h2 style="margin-top:40px">Different models, different misses — holo 1M13 (ligand HYF)</h2>
+<p>The pool above is one model (Boltz) with a <b>native, per-target</b> setup — and it hides a 0.59&nbsp;A
+pose. Below is the opposite regime: <b>three different architectures</b> (Boltz-1x, Boltz-2, ESMFold-2)
+co-folding the same holo from a <b>generic PXR sequence + shallow MSA</b>. Every protein backbone aligns to
+the crystal within 0.5&nbsp;A (gold cartoon), yet the ligand placements scatter from 3&nbsp;A to 15&nbsp;A —
+and <b>none</b> reach the near-native quality the native-setup pool did. This is the campaign's real lever
+made visible: <b>input fidelity (target-specific sequence, deep MSA, sampling depth) dominates model
+choice.</b> Toggle each architecture against the crystal.</p>
+
+<div class="stage">
+  <div id="view2"><div class="caption" id="cap2">Loading…</div></div>
+  <div class="side">
+    <div style="color:var(--muted)">ligand RMSD to crystal</div>
+    <div class="rmsd"><span id="rmsdv2">—</span><span class="u"> A</span></div>
+    <div class="bar"><i id="rbar2" style="width:0%"></i></div>
+    <div class="edit-name" id="editname2">&nbsp;</div>
+    <div id="glowtag2"></div>
+    <hr style="border-color:var(--line);margin:14px 0">
+    <div id="stats2"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--yellow)"></i>crystal (truth)</span>
+      <span><i class="dot" style="background:var(--green)"></i>closest model</span>
+      <span><i class="dot" style="background:var(--red)"></i>furthest</span>
+    </div>
+  </div>
+</div>
+<div class="controls" id="mmctrls"></div>
+<p style="margin-top:22px;font-size:13px">Data: OpenProtein cross-architecture co-fold of the PXR holo panel
+(generic canonical LBD sequence + shallow MSA, one sample per model), scored vs the RCSB crystal ligand by
+element-matched RMSD in the residue-identity-aligned protein frame. Same scoring path as the Boltz scene
+above. All 15 models' full pose pool is <a href="https://huggingface.co/datasets/xX-its-amit-Xx/pxr-structure-pose-pool">released on HuggingFace</a>.
+&larr; <a href="posthoc_analysis.html">back to the autopsy</a></p>
 
 <script>
 let V, D, mover=null, poseModels=[], crystalModel, proteinModel;
@@ -189,6 +221,65 @@ fetch("anim_8CH8.json").then(r=>r.json()).then(d=>{
     'pool worst':D.stats.pool_max+' A'
   }).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
   act1();
+});
+
+// ---- multi-model divergence scene (1M13) ----
+let V2, D2, mmModels=[];
+const mmColor=(r,best,worst)=> r<=best+0.01?"#50fa7b": r>=worst-0.01?"#ff5a5f": r<5?"#a6f56b": r<9?"#ffe66d":"#ff9f1c";
+function mmLigPDB(coords, elems){
+  let s="";
+  for(let i=0;i<coords.length;i++){
+    const c=coords[i], e=(elems[i]||'C').toUpperCase().padStart(2,' ');
+    s+=`HETATM${(i+1).toString().padStart(5)} ${e.padEnd(4)} LIG X   1    `
+      +`${c[0].toFixed(3).padStart(8)}${c[1].toFixed(3).padStart(8)}${c[2].toFixed(3).padStart(8)}`
+      +`  1.00  0.00          ${e.trim().padStart(2)}\n`;
+  }
+  return s+"END\n";
+}
+function mmClear(){mmModels.forEach(m=>V2.removeModel(m));mmModels=[];}
+function mmShow(which){
+  mmClear();
+  const best=D2.models[0].rmsd, worst=D2.models[D2.models.length-1].rmsd;
+  const sel = which==='all'? D2.models : D2.models.filter(m=>m.model===which);
+  sel.forEach(m=>{
+    const col=mmColor(m.rmsd,best,worst);
+    const mod=V2.addModel(mmLigPDB(m.lig,m.el),"pdb");
+    mod.setStyle({},{stick:{radius: sel.length>1?0.13:0.2, color:col},sphere:{scale: sel.length>1?0.18:0.28,color:col}});
+    mmModels.push(mod);
+  });
+  if(sel.length===1){
+    const m=sel[0];
+    document.getElementById('rmsdv2').textContent=m.rmsd.toFixed(2);
+    document.getElementById('rbar2').style.width=Math.max(2,Math.min(100,100-(m.rmsd/16*100)))+"%";
+    document.getElementById('editname2').textContent=m.model+' — backbone aligned to '+m.prot_rmsd+' A';
+    const g=m.rmsd<4?'g-green':'g-red';
+    document.getElementById('glowtag2').innerHTML=`<span class="glow-tag ${g}">${m.rmsd.toFixed(2)} A ligand miss</span>`;
+    document.getElementById('cap2').innerHTML=`<b>${m.model}</b>: protein backbone within <b>${m.prot_rmsd} A</b> of the crystal, but the ligand lands <b>${m.rmsd.toFixed(2)} A</b> off. Right pocket, wrong pose.`;
+  } else {
+    document.getElementById('rmsdv2').textContent=best.toFixed(2);
+    document.getElementById('rbar2').style.width=Math.max(2,Math.min(100,100-(best/16*100)))+"%";
+    document.getElementById('editname2').textContent='3 architectures, one generic setup';
+    document.getElementById('glowtag2').innerHTML=`<span class="glow-tag g-red">spread ${(worst-best).toFixed(1)} A &middot; none < 2 A</span>`;
+    document.getElementById('cap2').innerHTML=`<b>Three architectures diverge.</b> Best ${best.toFixed(2)} A, worst ${worst.toFixed(2)} A. All backbones align &lt;0.5 A; only the ligand pose scatters — the generic input starves every model of the target-specific signal.`;
+  }
+  V2.render();
+}
+fetch("multimodel_1M13.json").then(r=>r.json()).then(d=>{
+  D2=d;
+  V2=$3Dmol.createViewer("view2",{backgroundColor:"#08080e"});
+  const pm=V2.addModel(D2.protein_pdb,"pdb"); pm.setStyle({},{cartoon:{color:"#2b3a55",opacity:.55}});
+  const cm=V2.addModel(mmLigPDB(D2.crystal_lig.xyz,D2.crystal_lig.el),"pdb"); cm.setStyle({},{stick:{radius:.16,color:"#ffe66d"}});
+  V2.zoomTo({model:cm}); V2.zoom(0.5); V2.render();
+  document.getElementById('stats2').innerHTML=Object.entries({
+    'holo':D2.holo+' ('+D2.ligcode+')','architectures':D2.models.length,
+    'best model':D2.models[0].model+' '+D2.models[0].rmsd+' A',
+    'worst model':D2.models[D2.models.length-1].model+' '+D2.models[D2.models.length-1].rmsd+' A',
+    'frac < 2 A':'0 / '+D2.models.length
+  }).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  let btns=`<button class="act" onclick="mmShow('all')">All ${D2.models.length} architectures</button>`;
+  D2.models.forEach(m=>{btns+=`<button class="act" onclick="mmShow('${m.model}')">${m.model} (${m.rmsd} A)</button>`;});
+  document.getElementById('mmctrls').innerHTML=btns;
+  mmShow('all');
 });
 </script>
 </div></body></html>

@@ -73,7 +73,7 @@ def main():
                 # res may be list of structures (one per sample)
                 structs = res if isinstance(res, (list, tuple)) else [res]
                 for k, st in enumerate(structs):
-                    pdb = st.to_pdb() if hasattr(st, "to_pdb") else (st.pdb if hasattr(st, "pdb") else str(st))
+                    pdb = st.to_string(format="pdb")
                     open(os.path.join(mdir, f"{h}_s{k}.pdb"), "w").write(pdb)
                 print(f"  saved {h} ({len(structs)} samples)", flush=True)
             except Exception as e:

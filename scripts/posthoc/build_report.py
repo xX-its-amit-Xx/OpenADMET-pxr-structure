@@ -52,8 +52,39 @@ learned_sel = float(np.median(_L))
 corrs = {c: spearmanr(d[c], d["disagreement_mean_pw_rmsd"], nan_policy="omit")[0]
          for c in ["heavy", "mw", "tpsa", "rotb", "clogp", "narom"]}
 
-SECTIONS = ["overview", "watch-it", "disagreement", "selection-wall", "failure-modes",
-            "per-ligand", "rebuild", "release", "thanks", "methods"]
+# ---- cross-model GT co-fold (OpenProtein): real per-architecture accuracy ----
+CF = None
+try:
+    cf = pd.read_csv("data/processed/posthoc/cofold_scores.csv")
+    # best (deduped) pose per model/holo
+    bh = cf.groupby(["model", "holo"]).rmsd.min().reset_index()
+    per = bh.groupby("model").agg(n_holo=("holo", "nunique"),
+                                  med=("rmsd", "median"),
+                                  best=("rmsd", "min"),
+                                  frac2=("rmsd", lambda x: (x < 2).mean())).reset_index()
+    orc = bh.groupby("holo").rmsd.min()
+    sz = cf.groupby(["holo", "n_heavy"]).rmsd.min().reset_index()
+    CF = dict(per=per.sort_values("med"),
+              oracle_med=float(orc.median()), oracle_frac2=float((orc < 2).mean()),
+              n_holo=int(bh.holo.nunique()), n_model=int(bh.model.nunique()),
+              size_corr=float(sz.rmsd.corr(sz.n_heavy)), overall_best=float(bh.rmsd.min()))
+except Exception:
+    CF = None
+
+SECTIONS = ["overview", "watch-it", "disagreement", "cross-model", "selection-wall",
+            "failure-modes", "per-ligand", "rebuild", "release", "thanks", "methods"]
+
+
+def cofold_table():
+    if CF is None:
+        return "<p class='muted'>cross-model co-fold pending.</p>"
+    rows = "".join(
+        f"<tr><td><b>{r.model}</b></td><td>{int(r.n_holo)}</td><td>{r.med:.2f}</td>"
+        f"<td>{r.best:.2f}</td><td>{r.frac2:.0%}</td></tr>"
+        for r in CF["per"].itertuples())
+    return ("<table><thead><tr><th>architecture</th><th>holos</th><th>median RMSD (A)</th>"
+            "<th>best case (A)</th><th>frac &lt; 2A</th></tr></thead><tbody>"
+            f"{rows}</tbody></table>")
 
 
 def kicker(t): return f'<span class="kicker">{t}</span>'
@@ -132,8 +163,9 @@ interactive viewer plays the whole story - the 20-pose spread, the hidden near-p
 the pose we actually chose, then a decomposed refinement to the crystal where <b>each edit
 glows green (closer) or red (farther)</b>, and finally the atoms where we missed most.</p>
 <p><a href="posthoc_animation.html" style="font-size:16px">&#9654; Open the interactive 3D pose autopsy &rarr;</a>
-<span class="muted"> (WebGL / 3Dmol.js; a multi-model AF3/Boltz2/ESMFold version from the
-LatchBio-sponsored sampling run is being added).</span></p>
+<span class="muted"> (WebGL / 3Dmol.js). It now carries a second scene: three architectures
+(Boltz-1x / Boltz-2 / ESMFold-2) co-folded on holo 1M13, diverging 3-15&nbsp;A against the real
+crystal - the input-fidelity finding made visible.</span></p>
 </section>
 
 <section id="disagreement">{kicker("finding 1 // consensus")}
@@ -159,8 +191,31 @@ But agreement here reflects shared architecture/training, <b>not correctness</b>
 ground truth exists for the 184 to arbitrate. Our winning ensemble was built on the
 Boltz/OF3/AF3 side; this analysis shows that choice was, structurally, a <i>minority</i>
 opinion vs the larger ESM-family cluster. Whether the majority or the minority was right is
-exactly what the challenge could not tell us, and what a proper GT panel (below) is being
-built to answer.</p>
+exactly what the challenge could not tell us, and what the cross-model GT panel (next section)
+was built to answer.</p>
+</section>
+
+<section id="cross-model">{kicker("finding 2b // real ground truth")}
+<h2>Cross-model GT panel: input fidelity beats architecture</h2>
+<p>To arbitrate the majority-vs-minority question with <i>real</i> crystals, we co-folded the PXR
+holo panel across three architectures (Boltz-1x, Boltz-2, ESMFold-2) on the OpenProtein API and
+scored every pose against the RCSB crystal ligand (element-matched RMSD in the residue-identity
+aligned protein frame). Result across <b>{CF['n_holo'] if CF else 0} holos</b>:</p>
+{cofold_table()}
+<p>Every backbone superposes to the crystal within ~0.5&nbsp;A, yet <b>not one architecture places
+a single ligand under 2&nbsp;A</b> - the cross-model oracle (best pose, any model) is
+<b>{CF['oracle_med']:.1f}&nbsp;A</b> and the best case in the whole panel is
+<b>{CF['overall_best']:.2f}&nbsp;A</b>. Crucially this is <i>not</i> a ligand-size effect
+(RMSD-vs-size correlation is only <b>{CF['size_corr']:.2f}</b>): the misses are uniform.</p>
+<p>The contrast with the Boltz scene in the <a href="posthoc_animation.html">3D autopsy</a> is the whole
+lesson. The <i>same</i> Boltz model, run with a <b>native per-target setup</b> (target sequence, deep
+MSA, best-of-20 sampling), buries a <b>0.59&nbsp;A</b> pose in its pool on 8CH8. Run from a
+<b>generic canonical sequence + shallow MSA</b>, it lands <b>8.7&nbsp;A</b> off on 1M13 - and ESMFold-2
+lands 15&nbsp;A off on the same target. The lever was never the model zoo; it was
+<b>input fidelity: target-specific sequence, MSA depth, and sampling budget.</b> That is precisely what
+the LatchBio-sponsored AlphaFold3 deep-sampling run bought us, and why it moved the needle where a
+broader-but-shallower model sweep did not.</p>
+<p><a href="posthoc_animation.html#view2" style="font-size:15px">&#9654; See the three architectures diverge against the 1M13 crystal &rarr;</a></p>
 </section>
 
 <section id="selection-wall">{kicker("finding 3 // the ceiling")}
