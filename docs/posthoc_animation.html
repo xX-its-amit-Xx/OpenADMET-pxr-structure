@@ -56,12 +56,22 @@ font-family:"Trebuchet MS","Segoe UI",sans-serif;font-size:12.5px;line-height:1.
 .whybox .cite{color:var(--muted);font-size:11px;font-style:italic}
 </style></head><body><div class="wrap">
 <span class="kicker">post-hoc // 3D pose autopsy</span>
-<h1>The selection wall, in 3D — holo 8CH8 (ligand ULC)</h1>
+<h1>The selection wall, in 3D — three GT holo cases</h1>
 <p>This plays as a <b>video</b>. Watch Boltz-2 rapidly <b>sample 20 poses</b> (each tagged with its seed),
 the pool that hides a near-perfect <b>0.59&nbsp;A</b> pose, the <b>2.36&nbsp;A</b> pose confidence picks
 instead, then a decomposed <b>refinement to the crystal</b> (gold) where every edit glows
 <span style="color:var(--green)">green</span> (closer) or <span style="color:var(--red)">red</span> (farther),
 and finally the atoms where we missed. Hit play, or drag the <b>scrubber</b> to step through any moment.</p>
+
+<div style="display:flex;align-items:center;gap:10px;margin:14px 0 2px;flex-wrap:wrap">
+  <label style="font-family:Consolas,monospace;font-size:12px;color:var(--muted)">holo case</label>
+  <select id="holosel" onchange="onHolo(this.value)" style="background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:7px 10px;font-family:Consolas,monospace;font-size:12.5px">
+    <option value="8CH8">8CH8 — selection wall (0.59→2.36 Å)</option>
+    <option value="7RIV">7RIV — selection miss (0.89→1.58 Å)</option>
+    <option value="4X1G">4X1G — generation failure (6.19→7.97 Å)</option>
+  </select>
+  <span id="holonote" style="font-size:12px;color:var(--muted)"></span>
+</div>
 
 <div class="stage">
   <div id="view"><div class="caption" id="cap">Loading…</div></div>
@@ -166,25 +176,14 @@ let V, D, TL=[], PHASES=[], ci=0, playing=false, timer=null;
 let proteinModel, crystalModel, poolModel=null, trajModel=null;
 const PHASELABEL={gen:"generation",pool:"the pool",oracle:"hidden near-native",select:"what confidence picked",refine:"refine to crystal",missed:"where we missed"};
 
-// The 6 worst atoms cluster into 3 chemically & structurally distinct miss-sites (8CH8/ULC).
-// Atom indices are in the JSON's atom order; residues + displacements from crystal-contact analysis.
-const SITES=[
-  {name:"Hydrophobic arm", atoms:[9], group:"tetrahydronaphthalene ring", res:"Ile414 · Phe420 · Leu411", disp:6.6, color:"#ffe66d",
-   why:"PXR's pocket is ~1,150 Å³ and <b>essentially uncharged</b> — 20 of ~28 lining residues are hydrophobic — so this bicyclic ring gets <b>no directional contact</b> to orient it and can sit in any of five near-isoenergetic sub-sites (SR12813 alone was seen in five orientations). And AF3-class models are biased to pin <i>polar</i> head-groups while <b>actively mis-placing hydrophobic groups</b> — ligand-orientation-within-pocket is their single biggest failure mode (58.6% of errors) — so the ring landed in the wrong sub-site, 6.6 Å off.",
-   cite:"Sci Rep 2018 (uncharged pocket, 5 SR12813 orientations); AF3 docking-failure analysis 2025."},
-  {name:"Polar anchor", atoms:[10,5], group:"thiocarbamate C=S", res:"Ser247 · Gln285 · Cys284", disp:4.2, color:"#ff5a5f",
-   why:"Ser247/Gln285/His407 are the <b>polar anchor cluster</b> that pins canonical agonists like SR12813, and Cys284 is part of the same hydrogen-bond hot-spot. But our ligand only offers a <b>thiocarbonyl (C=S)</b> here, and sulfur is a <b>weak, anisotropic H-bond acceptor</b> — ~20% weaker than a carbonyl O and accepting only along specific lone-pair directions. That shallow, directional signal is easy to miss, so it slipped ~4 Å.",
-   cite:"Sci Rep 2018 (S247/Q285/H407 anchoring); hot-spot H-bond map; ACS/PMC (C=S weak acceptor)."},
-  {name:"His407 contact", atoms:[0,1,2], group:"methoxypyridine O", res:"His407", disp:4.5, color:"#ff9f1c",
-   why:"His407 is a key <b>directional anchor</b> — it accepts a hydrogen bond from agonist hydroxyls (T0901317, SR12813). Here the ligand only reaches it with a <b>weak edge-on methoxy contact</b>, and His407's side chain is mobile in a pocket that reshapes around each ligand, so the model placed the group ~4.5 Å away.",
-   cite:"Cell/Structure 2023 (H407↔hydroxyl H-bond); hot-spot map (Gln285·Ser247·His407·Cys284)."},
-];
+// Miss-sites now come per-holo from the JSON (D.sites): 8CH8 carries deep-research-backed
+// prose; other holos carry data-derived structural sites (nearest pocket residue + role).
 let worstModel=null, hoverLabel=null;
 
 function buildSitebox(){
   el('sitebox').innerHTML =
     `<div style="color:var(--muted);margin-bottom:6px">WHERE WE MISSED — hover a site (in 3D or here)</div>`+
-    SITES.map((s,k)=>`<div class="site-row" data-k="${k}" onmouseover="showSite(${k})">`
+    D.sites.map((s,k)=>`<div class="site-row" data-k="${k}" onmouseover="showSite(${k})">`
       +`<span class="dot" style="background:${s.color}"></span><b>${s.name}</b>`
       +`<span style="color:var(--muted)"> · ${s.group} · ${s.disp} Å off</span></div>`).join('')
     +`<div class="whybox" id="whybox"></div>`
@@ -192,7 +191,7 @@ function buildSitebox(){
 }
 function showSite(k){
   document.querySelectorAll('.site-row').forEach(r=>r.classList.toggle('on',(+r.dataset.k)===k));
-  const s=SITES[k];
+  const s=D.sites[k];
   el('whybox').innerHTML=`<b style="color:${s.color}">${s.group}</b> → <b>${s.res}</b><br>${s.why}<br><span class="cite">${s.cite}</span>`;
 }
 
@@ -254,18 +253,18 @@ function drawWorstSites(){
   const s=D.poses[D.selected_idx];
   // hoverable model: one HETATM per worst atom, resSeq = site index+1 so hover maps to a site
   let pdb="", serial=1;
-  SITES.forEach((site,si)=> site.atoms.forEach(ai=>{ pdb+=atomLine(serial++, D.elems[ai]||'C', si+1, s.lig[ai]); }));
+  D.sites.forEach((site,si)=> site.atoms.forEach(ai=>{ pdb+=atomLine(serial++, D.elems[ai]||'C', si+1, s.lig[ai]); }));
   worstModel=V.addModel(pdb+"END\n","pdb");
-  SITES.forEach((site,si)=> worstModel.setStyle({resi:si+1},{sphere:{radius:.75,color:site.color,opacity:.6}}));
+  D.sites.forEach((site,si)=> worstModel.setStyle({resi:si+1},{sphere:{radius:.75,color:site.color,opacity:.6}}));
   // arrows: pose atom -> where the crystal actually places it
-  SITES.forEach(site=> site.atoms.forEach(ai=>{ const c=s.lig[ai], cc=D.crystal_lig[ai];
+  D.sites.forEach(site=> site.atoms.forEach(ai=>{ const c=s.lig[ai], cc=D.crystal_lig[ai];
     V.addArrow({start:{x:c[0],y:c[1],z:c[2]},end:{x:cc[0],y:cc[1],z:cc[2]},color:'#ffe66d',radius:.08}); }));
   // hover -> explain the site
   V.setHoverable({model:worstModel}, true,
     (atom)=>{ if(!atom||!atom.resi) return; const k=atom.resi-1; showSite(k);
       if(hoverLabel) V.removeLabel(hoverLabel);
-      hoverLabel=V.addLabel(SITES[k].name+" · "+SITES[k].res, {position:atom,backgroundColor:'#0b0b12',
-        backgroundOpacity:.9,fontColor:SITES[k].color,fontSize:12,borderColor:SITES[k].color,borderThickness:1});
+      hoverLabel=V.addLabel(D.sites[k].name+" · "+D.sites[k].res, {position:atom,backgroundColor:'#0b0b12',
+        backgroundOpacity:.9,fontColor:D.sites[k].color,fontSize:12,borderColor:D.sites[k].color,borderThickness:1});
       V.render(); },
     ()=>{ if(hoverLabel){V.removeLabel(hoverLabel);hoverLabel=null;V.render();} });
 }
@@ -324,27 +323,38 @@ function buildMarks(){
   }).join('');
 }
 
-fetch("anim_8CH8.json").then(r=>r.json()).then(d=>{
-  D=d;
-  V=$3Dmol.createViewer("view",{backgroundColor:"#08080e"});
-  proteinModel=V.addModel(D.protein_pdb,"pdb");
-  proteinModel.setStyle({},{cartoon:{color:"#2b3a55",opacity:.55}});
-  crystalModel=V.addModel(ligPDB(D.crystal_lig,D.elems),"pdb");
-  crystalModel.setStyle({},{stick:{radius:.16,color:"#ffe66d"}});
-  // persistent, restyle-only models (no per-frame add/remove -> no ghosting)
-  poolModel=V.addModel(poolPDB(D.poses.map((_,i)=>i),D.elems,D.poses),"pdb"); poolModel.setStyle({},{});
-  trajModel=V.addModel(multiFramePDB(D.traj_frames,D.elems),"pdb"); trajModel.setStyle({},{});
-  V.zoomTo({model:crystalModel}); V.zoom(0.55); V.render();
-  el('stats').innerHTML=Object.entries({
-    'holo':D.holo+' ('+D.ligcode+')','sampler':'Boltz-2 × '+D.stats.n_poses+' seeds',
-    'pool best (oracle)':D.stats.oracle_rmsd+' A','we picked':D.stats.selected_rmsd+' A',
-    'pool worst':D.stats.pool_max+' A'
-  }).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
-  buildTimeline(); buildMarks();
-  el('scrub').max=TL.length-1;
-  render(0);
-  setTimeout(()=>{ if(!playing) play(); }, 700);   // auto-start the video
-});
+// Each holo illustrates a different lesson (oracle vs pick).
+const HOLOS={
+  "8CH8":"selection wall — the pool hid a 0.59 Å pose; confidence picked 2.36 Å",
+  "7RIV":"selection miss — a 0.89 Å pose existed; confidence picked 1.58 Å",
+  "4X1G":"generation failure — even the best pose is 6.19 Å (large flexible ligand; the pool has no good answer)"
+};
+function loadHolo(holo){
+  pause();
+  fetch(`anim_${holo}.json`).then(r=>r.json()).then(d=>{
+    D=d; worstModel=null; hoverLabel=null; poolModel=null; trajModel=null;
+    if(!V) V=$3Dmol.createViewer("view",{backgroundColor:"#08080e"});
+    else { V.removeAllModels(); V.removeAllShapes(); if(V.removeAllLabels)V.removeAllLabels(); }
+    proteinModel=V.addModel(D.protein_pdb,"pdb");
+    proteinModel.setStyle({},{cartoon:{color:"#2b3a55",opacity:.55}});
+    crystalModel=V.addModel(ligPDB(D.crystal_lig,D.elems),"pdb");
+    crystalModel.setStyle({},{stick:{radius:.16,color:"#ffe66d"}});
+    poolModel=V.addModel(poolPDB(D.poses.map((_,i)=>i),D.elems,D.poses),"pdb"); poolModel.setStyle({},{});
+    trajModel=V.addModel(multiFramePDB(D.traj_frames,D.elems),"pdb"); trajModel.setStyle({},{});
+    V.zoomTo({model:crystalModel}); V.zoom(0.55); V.render();
+    el('stats').innerHTML=Object.entries({
+      'holo':D.holo+' ('+D.ligcode+')','sampler':'Boltz-2 × '+D.stats.n_poses+' seeds',
+      'pool best (oracle)':D.stats.oracle_rmsd+' A','we picked':D.stats.selected_rmsd+' A',
+      'pool worst':D.stats.pool_max+' A'
+    }).map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+    el('holonote').textContent=HOLOS[holo]||'';
+    ci=0; playing=false; buildTimeline(); buildMarks();
+    el('scrub').max=TL.length-1; render(0);
+    setTimeout(()=>{ if(!playing) play(); }, 700);   // auto-start the video
+  });
+}
+function onHolo(v){ loadHolo(v); }
+loadHolo("8CH8");
 
 // ======================= SCENE 2 : multi-model divergence =======================
 let V2, D2, mmModels=[], mmTimer=null, mmIdx=0;
