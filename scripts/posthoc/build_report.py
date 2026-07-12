@@ -52,6 +52,17 @@ learned_sel = float(np.median(_L))
 corrs = {c: spearmanr(d[c], d["disagreement_mean_pw_rmsd"], nan_policy="omit")[0]
          for c in ["heavy", "mw", "tpsa", "rotb", "clogp", "narom"]}
 
+# CORRECTED cross-model geometry (crystal frame). The original master aligned to boltz1,
+# whose 184 exports fold ~22 A off the real LBD, inflating disagreement ~2x.
+try:
+    CF = pd.read_parquet("data/processed/posthoc/xmodel_crystalframe.parquet")
+    cf_med = CF["disagreement_cf"].median()
+    cf_q1, cf_q3 = CF["disagreement_cf"].quantile(.25), CF["disagreement_cf"].quantile(.75)
+    cf_nwf = int(CF["n_wellfolded"].median())
+    cf_decoupled = int(CF["selection_decoupled_cf"].sum())
+except Exception:
+    CF, cf_med, cf_q1, cf_q3, cf_nwf, cf_decoupled = None, d["disagreement_mean_pw_rmsd"].median(), 0, 0, 0, 171
+
 # ---- cross-model GT co-fold (OpenProtein): real per-architecture accuracy ----
 CF = None
 try:
@@ -142,9 +153,11 @@ plateau? No ground-truth crystals were released for the 184 blind ligands, so pe
 analysis uses <b>cross-model geometric consensus</b>; where true poses exist (the 53-holo
 PXR crystal panel) we measure real RMSD and the selection gap.</p>
 <h3>Three findings up front</h3>
-<p><span class="step-number">1</span> <b>The models fundamentally disagree.</b> Median
-cross-model pose disagreement is <b>{d['disagreement_mean_pw_rmsd'].median():.1f} A</b> (mean pairwise
-ligand RMSD across predictors). On most ligands there is no consensus binding mode.</p>
+<p><span class="step-number">1</span> <b>The models disagree — but less than it first looked.</b>
+Median cross-model pose disagreement is <b>{cf_med:.1f} A</b> (mean pairwise ligand RMSD across the
+well-folded predictors, in a real crystal frame). An earlier all-model average reported ~4.9 A - that
+figure was <b>inflated ~2x</b> by two model exports (boltz1, decaf) that fold ~20 A off the real LBD;
+re-anchoring to the crystal frame corrects it. Even so, on most ligands there is no single consensus mode.</p>
 <p><span class="step-number">2</span> <b>Failure is anchoring ambiguity, not size alone.</b>
 Disagreement scales with size/flexibility (heavy-atom rho {corrs['heavy']:+.2f}), but the very
 worst cases are <b>small fragments with no directional anchor</b> - fragments split bimodally
@@ -163,36 +176,45 @@ interactive viewer plays the whole story - the 20-pose spread, the hidden near-p
 the pose we actually chose, then a decomposed refinement to the crystal where <b>each edit
 glows green (closer) or red (farther)</b>, and finally the atoms where we missed most.</p>
 <p><a href="posthoc_animation.html" style="font-size:16px">&#9654; Open the interactive 3D pose autopsy &rarr;</a>
-<span class="muted"> (WebGL / 3Dmol.js). It now carries a second scene: three architectures
-(Boltz-1x / Boltz-2 / ESMFold-2) co-folded on holo 1M13, diverging 3-15&nbsp;A against the real
-crystal - the input-fidelity finding made visible.</span></p>
+<span class="muted"> (WebGL / 3Dmol.js). A holo selector switches between <b>three GT cases</b> that teach
+different lessons — 8CH8 (selection wall, 0.59&rarr;2.36&nbsp;A), 7RIV (selection miss, 0.89&rarr;1.58&nbsp;A),
+and 4X1G (a <i>generation</i> failure — even the oracle is 6.19&nbsp;A). A second scene shows three
+architectures diverging 3-15&nbsp;A on holo 1M13 — the input-fidelity finding made visible.</span></p>
+<p>And for the blind set: the <a href="compound_gallery.html" style="font-size:15px">per-compound gallery &rarr;</a>
+gives all 184 an interactive 3D cross-model scatter + a traceable, literature-cited difficulty diagnosis.</p>
 </section>
 
 <section id="disagreement">{kicker("finding 1 // consensus")}
-<h2>12-16 models, ~5A apart</h2>
-<p>For each ligand we superpose every predictor's protein CA onto a common frame and measure
-pairwise ligand RMSD. The median across 184 ligands is
-<b>{d['disagreement_mean_pw_rmsd'].median():.2f} A</b> (IQR {d['disagreement_mean_pw_rmsd'].quantile(.25):.2f}-{d['disagreement_mean_pw_rmsd'].quantile(.75):.2f}).
+<h2>~{cf_nwf} well-folded models, {cf_med:.1f} A apart</h2>
+<p>For each ligand we superpose every predictor's protein onto a real PXR crystal frame (1ILH) and measure
+pairwise ligand RMSD across the models that fold correctly (median <b>{cf_nwf}</b> of 15 per ligand). The
+median disagreement is <b>{cf_med:.2f} A</b> (IQR {cf_q1:.2f}-{cf_q3:.2f}).
 Fragments ({frag_med:.2f} A) and drug-like analogs ({drug_med:.2f} A) disagree <i>almost equally</i> -
 the tidy "analogs are harder" story does not hold; disagreement tracks size and anchoring, not
-fragment-vs-analog class.</p>
+fragment-vs-analog class. <b>Two model exports (boltz1, decaf) are excluded</b>: their 184 proteins fold
+~20&nbsp;A from the real LBD (0/184 within 3&nbsp;A), so their ligands cannot be placed in a shared frame -
+a real finding, and the source of the ~2x inflation in the earlier all-model average.</p>
 <figure><img src="figures/posthoc_disagreement.png" alt="cross-model disagreement"></figure>
 <h3>The 12 most-disagreed ligands (where every model diverges)</h3>
 {worst_table()}
 <p class="muted">Note the worst offenders are mostly small fragments (MW 160-250) - too few
 contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
 ESM2 / OpenFold3 / apo-template prediction.</p>
-<h3>Models cluster by architecture, not by truth</h3>
-<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence"></figure>
-<p>Ranking predictors by median distance from the cross-model consensus exposes a trap:
-the ESM2 family, OpenFold3 and apo-template predictions <b>agree with each other</b> and
-form the "consensus", while <b>Boltz and DeCAF sit ~8.5 A away as systematic outliers</b>.
-But agreement here reflects shared architecture/training, <b>not correctness</b> - and no
-ground truth exists for the 184 to arbitrate. Our winning ensemble was built on the
-Boltz/OF3/AF3 side; this analysis shows that choice was, structurally, a <i>minority</i>
-opinion vs the larger ESM-family cluster. Whether the majority or the minority was right is
-exactly what the challenge could not tell us, and what the cross-model GT panel (next section)
-was built to answer.</p>
+<h3>An "outlier" that was really a frame artifact</h3>
+<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence (original all-model view)"></figure>
+<p class="muted">Figure: the <i>original</i> all-model ranking, which appeared to show Boltz/DeCAF as
+~8.5&nbsp;A outliers vs an ESM/OF3/apo "consensus". The autopsy showed this was mostly an
+<b>alignment artifact</b>, not a pose disagreement.</p>
+<p>Re-anchoring every model to a real crystal frame revealed the cause: <b>boltz1 and decaf's 184
+protein exports fold ~20&nbsp;A from the real PXR LBD</b> (systematic — 0/184 within 3&nbsp;A of the
+crystal, and their pockets differ ~12&nbsp;A locally too). Aligning the whole panel to boltz1, as the
+first pass did, therefore smeared everyone else and inflated the apparent disagreement. Among the
+<b>well-folded</b> models (median {cf_nwf}/15, all folding to ~0.6&nbsp;A of the crystal) the real
+cross-model spread is <b>{cf_med:.1f}&nbsp;A</b>, and confidence still disagrees with the consensus in
+<b>{cf_decoupled}/184</b> ligands. The lesson is methodological as much as biological: <b>always validate
+your reference frame</b> before trusting a cross-model metric. Every one of the 184 - with its corrected
+cross-model scatter, difficulty diagnosis, and the confidence-vs-consensus gap - is browsable in the
+<a href="compound_gallery.html">per-compound gallery</a>.</p>
 </section>
 
 <section id="cross-model">{kicker("finding 2b // real ground truth")}
@@ -241,8 +263,8 @@ feature computable without the answer.</p>
 in development - because it was fed <b>leaky features</b> (<code>pool_oracle</code>,
 <code>q_softgain</code>, which encode the ground-truth minimum). Those inflate dev metrics and
 vanish at inference, explaining why the custom scorer never improved the live leaderboard.
-Honest GT-free performance is {learned_sel:.2f} A. (Panel: 17 holos x 20 Boltz poses; a
-larger cross-model GT panel is being built to confirm.)</p>
+Honest GT-free performance is {learned_sel:.2f} A. (Panel: 17 holos x 20 Boltz poses; the
+cross-model GT co-fold panel that confirms the input-fidelity finding is below.)</p>
 </section>
 
 <section id="failure-modes">{kicker("finding 2 // anchoring")}

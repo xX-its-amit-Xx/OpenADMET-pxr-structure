@@ -625,9 +625,11 @@ plateau? No ground-truth crystals were released for the 184 blind ligands, so pe
 analysis uses <b>cross-model geometric consensus</b>; where true poses exist (the 53-holo
 PXR crystal panel) we measure real RMSD and the selection gap.</p>
 <h3>Three findings up front</h3>
-<p><span class="step-number">1</span> <b>The models fundamentally disagree.</b> Median
-cross-model pose disagreement is <b>4.9 A</b> (mean pairwise
-ligand RMSD across predictors). On most ligands there is no consensus binding mode.</p>
+<p><span class="step-number">1</span> <b>The models disagree — but less than it first looked.</b>
+Median cross-model pose disagreement is <b>2.4 A</b> (mean pairwise ligand RMSD across the
+well-folded predictors, in a real crystal frame). An earlier all-model average reported ~4.9 A - that
+figure was <b>inflated ~2x</b> by two model exports (boltz1, decaf) that fold ~20 A off the real LBD;
+re-anchoring to the crystal frame corrects it. Even so, on most ligands there is no single consensus mode.</p>
 <p><span class="step-number">2</span> <b>Failure is anchoring ambiguity, not size alone.</b>
 Disagreement scales with size/flexibility (heavy-atom rho +0.26), but the very
 worst cases are <b>small fragments with no directional anchor</b> - fragments split bimodally
@@ -646,36 +648,45 @@ interactive viewer plays the whole story - the 20-pose spread, the hidden near-p
 the pose we actually chose, then a decomposed refinement to the crystal where <b>each edit
 glows green (closer) or red (farther)</b>, and finally the atoms where we missed most.</p>
 <p><a href="posthoc_animation.html" style="font-size:16px">&#9654; Open the interactive 3D pose autopsy &rarr;</a>
-<span class="muted"> (WebGL / 3Dmol.js). It now carries a second scene: three architectures
-(Boltz-1x / Boltz-2 / ESMFold-2) co-folded on holo 1M13, diverging 3-15&nbsp;A against the real
-crystal - the input-fidelity finding made visible.</span></p>
+<span class="muted"> (WebGL / 3Dmol.js). A holo selector switches between <b>three GT cases</b> that teach
+different lessons — 8CH8 (selection wall, 0.59&rarr;2.36&nbsp;A), 7RIV (selection miss, 0.89&rarr;1.58&nbsp;A),
+and 4X1G (a <i>generation</i> failure — even the oracle is 6.19&nbsp;A). A second scene shows three
+architectures diverging 3-15&nbsp;A on holo 1M13 — the input-fidelity finding made visible.</span></p>
+<p>And for the blind set: the <a href="compound_gallery.html" style="font-size:15px">per-compound gallery &rarr;</a>
+gives all 184 an interactive 3D cross-model scatter + a traceable, literature-cited difficulty diagnosis.</p>
 </section>
 
 <section id="disagreement"><span class="kicker">finding 1 // consensus</span>
-<h2>12-16 models, ~5A apart</h2>
-<p>For each ligand we superpose every predictor's protein CA onto a common frame and measure
-pairwise ligand RMSD. The median across 184 ligands is
-<b>4.87 A</b> (IQR 4.30-5.36).
+<h2>~9 well-folded models, 2.4 A apart</h2>
+<p>For each ligand we superpose every predictor's protein onto a real PXR crystal frame (1ILH) and measure
+pairwise ligand RMSD across the models that fold correctly (median <b>9</b> of 15 per ligand). The
+median disagreement is <b>2.43 A</b> (IQR 1.74-2.92).
 Fragments (4.79 A) and drug-like analogs (4.88 A) disagree <i>almost equally</i> -
 the tidy "analogs are harder" story does not hold; disagreement tracks size and anchoring, not
-fragment-vs-analog class.</p>
+fragment-vs-analog class. <b>Two model exports (boltz1, decaf) are excluded</b>: their 184 proteins fold
+~20&nbsp;A from the real LBD (0/184 within 3&nbsp;A), so their ligands cannot be placed in a shared frame -
+a real finding, and the source of the ~2x inflation in the earlier all-model average.</p>
 <figure><img src="figures/posthoc_disagreement.png" alt="cross-model disagreement"></figure>
 <h3>The 12 most-disagreed ligands (where every model diverges)</h3>
 <table><thead><tr><th>ligand</th><th>pop</th><th>series</th><th>MW</th><th>rotB</th><th>disagree A</th><th>consensus</th><th>medoid</th></tr></thead><tbody><tr><td>x00543-1</td><td>fragment</td><td>FR127</td><td>215</td><td>2</td><td>11.1</td><td>0.31</td><td>esm2_none</td></tr><tr><td>x01382-1</td><td>fragment</td><td>FR90</td><td>225</td><td>1</td><td>9.2</td><td>0.25</td><td>esm2_none</td></tr><tr><td>x01438-1</td><td>fragment</td><td>FR86</td><td>243</td><td>3</td><td>8.9</td><td>0.17</td><td>esm2_full</td></tr><tr><td>x01358-1</td><td>fragment</td><td>FR92</td><td>212</td><td>2</td><td>8.9</td><td>0.17</td><td>rf3</td></tr><tr><td>x01131-1</td><td>fragment</td><td>FR101</td><td>175</td><td>1</td><td>7.9</td><td>0.15</td><td>boltz1x</td></tr><tr><td>x01334-1</td><td>fragment</td><td>FR93</td><td>213</td><td>2</td><td>7.7</td><td>0.25</td><td>apo</td></tr><tr><td>x01126-1</td><td>fragment</td><td>FR79</td><td>164</td><td>0</td><td>7.1</td><td>0.39</td><td>of3ft</td></tr><tr><td>x01415-1</td><td>fragment</td><td>FR87</td><td>217</td><td>3</td><td>7.1</td><td>0.08</td><td>boltz1x</td></tr><tr><td>x02877-1</td><td>drug_like</td><td>DL17</td><td>342</td><td>3</td><td>7.0</td><td>0.23</td><td>esm2_none</td></tr><tr><td>x01502-1</td><td>fragment</td><td>FR84</td><td>204</td><td>2</td><td>7.0</td><td>0.17</td><td>of3ft</td></tr><tr><td>x01234-1</td><td>drug_like</td><td>DL74</td><td>253</td><td>2</td><td>6.7</td><td>0.25</td><td>esm2_shallow</td></tr><tr><td>x03123-1</td><td>drug_like</td><td>DL42</td><td>402</td><td>7</td><td>6.7</td><td>0.23</td><td>esm2_none</td></tr></tbody></table>
 <p class="muted">Note the worst offenders are mostly small fragments (MW 160-250) - too few
 contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
 ESM2 / OpenFold3 / apo-template prediction.</p>
-<h3>Models cluster by architecture, not by truth</h3>
-<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence"></figure>
-<p>Ranking predictors by median distance from the cross-model consensus exposes a trap:
-the ESM2 family, OpenFold3 and apo-template predictions <b>agree with each other</b> and
-form the "consensus", while <b>Boltz and DeCAF sit ~8.5 A away as systematic outliers</b>.
-But agreement here reflects shared architecture/training, <b>not correctness</b> - and no
-ground truth exists for the 184 to arbitrate. Our winning ensemble was built on the
-Boltz/OF3/AF3 side; this analysis shows that choice was, structurally, a <i>minority</i>
-opinion vs the larger ESM-family cluster. Whether the majority or the minority was right is
-exactly what the challenge could not tell us, and what the cross-model GT panel (next section)
-was built to answer.</p>
+<h3>An "outlier" that was really a frame artifact</h3>
+<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence (original all-model view)"></figure>
+<p class="muted">Figure: the <i>original</i> all-model ranking, which appeared to show Boltz/DeCAF as
+~8.5&nbsp;A outliers vs an ESM/OF3/apo "consensus". The autopsy showed this was mostly an
+<b>alignment artifact</b>, not a pose disagreement.</p>
+<p>Re-anchoring every model to a real crystal frame revealed the cause: <b>boltz1 and decaf's 184
+protein exports fold ~20&nbsp;A from the real PXR LBD</b> (systematic — 0/184 within 3&nbsp;A of the
+crystal, and their pockets differ ~12&nbsp;A locally too). Aligning the whole panel to boltz1, as the
+first pass did, therefore smeared everyone else and inflated the apparent disagreement. Among the
+<b>well-folded</b> models (median 9/15, all folding to ~0.6&nbsp;A of the crystal) the real
+cross-model spread is <b>2.4&nbsp;A</b>, and confidence still disagrees with the consensus in
+<b>171/184</b> ligands. The lesson is methodological as much as biological: <b>always validate
+your reference frame</b> before trusting a cross-model metric. Every one of the 184 - with its corrected
+cross-model scatter, difficulty diagnosis, and the confidence-vs-consensus gap - is browsable in the
+<a href="compound_gallery.html">per-compound gallery</a>.</p>
 </section>
 
 <section id="cross-model"><span class="kicker">finding 2b // real ground truth</span>
@@ -724,8 +735,8 @@ feature computable without the answer.</p>
 in development - because it was fed <b>leaky features</b> (<code>pool_oracle</code>,
 <code>q_softgain</code>, which encode the ground-truth minimum). Those inflate dev metrics and
 vanish at inference, explaining why the custom scorer never improved the live leaderboard.
-Honest GT-free performance is 2.42 A. (Panel: 17 holos x 20 Boltz poses; a
-larger cross-model GT panel is being built to confirm.)</p>
+Honest GT-free performance is 2.42 A. (Panel: 17 holos x 20 Boltz poses; the
+cross-model GT co-fold panel that confirms the input-fidelity finding is below.)</p>
 </section>
 
 <section id="failure-modes"><span class="kicker">finding 2 // anchoring</span>
@@ -749,11 +760,6 @@ medoid model, confidence, and properties - is written to
 <span class="pill">184 ligands analyzed</span>
 <span class="pill">57 with majority consensus</span>
 <span class="pill">22 pathological (&gt;6A)</span></p>
-<p><a href="compound_gallery.html" style="font-size:16px">&#9654; Open the interactive per-compound gallery (all 184) &rarr;</a>
-<span class="muted"> Sortable/searchable cards; each opens a traceable diagnosis — the 15-model pose journey,
-the confidence-vs-consensus selection gap, why it was hard (data-derived tags, each cited to verified
-literature), and what could have reached the pose. Confidence disagrees with the cross-model consensus in
-<b>171 / 184</b> ligands.</span></p>
 </section>
 
 <section id="rebuild"><span class="kicker">in progress // methods we skipped</span>
