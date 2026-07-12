@@ -673,10 +673,11 @@ a real finding, and the source of the ~2x inflation in the earlier all-model ave
 contacts to pin a pose. The consensus "medoid" model is rarely Boltz; it is usually an
 ESM2 / OpenFold3 / apo-template prediction.</p>
 <h3>An "outlier" that was really a frame artifact</h3>
-<figure><img src="figures/posthoc_permodel.png" alt="per-model divergence (original all-model view)"></figure>
-<p class="muted">Figure: the <i>original</i> all-model ranking, which appeared to show Boltz/DeCAF as
-~8.5&nbsp;A outliers vs an ESM/OF3/apo "consensus". The autopsy showed this was mostly an
-<b>alignment artifact</b>, not a pose disagreement.</p>
+<figure><img src="figures/posthoc_permodel.png" alt="per-model distance from consensus (crystal frame)"></figure>
+<p class="muted">Figure: corrected crystal-frame per-model distance from consensus (well-folded models;
+boltz1/decaf excluded as frame-incompatible). Once the reference frame is a real crystal, no
+architecture is a gross outlier — the earlier ~8.5&nbsp;A "Boltz outlier" was an alignment artifact
+from anchoring the whole panel to boltz1's misfolded export.</p>
 <p>Re-anchoring every model to a real crystal frame revealed the cause: <b>boltz1 and decaf's 184
 protein exports fold ~20&nbsp;A from the real PXR LBD</b> (systematic — 0/184 within 3&nbsp;A of the
 crystal, and their pockets differ ~12&nbsp;A locally too). Aligning the whole panel to boltz1, as the

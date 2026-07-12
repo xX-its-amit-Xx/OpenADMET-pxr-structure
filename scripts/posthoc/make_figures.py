@@ -57,8 +57,11 @@ ax.set_xlim(0, max(meds) * 1.18)
 plt.tight_layout(); plt.savefig(f"{OUT}/posthoc_selection_wall.png", dpi=140); plt.close()
 print("wrote posthoc_selection_wall.png")
 
-# ---------- Fig 2: cross-model disagreement ----------
+# ---------- Fig 2: cross-model disagreement (CORRECTED crystal-frame) ----------
 m = pd.read_parquet("data/processed/posthoc/master_184.parquet")
+_cf = pd.read_parquet("data/processed/posthoc/xmodel_crystalframe.parquet")[["structure", "disagreement_cf"]]
+m = m.merge(_cf, on="structure", how="left")
+m["disagreement_mean_pw_rmsd"] = m["disagreement_cf"]   # crystal-frame (boltz1-frame was inflated ~2x)
 d = m[m["disagreement_mean_pw_rmsd"].notna()]
 fig, (a1, a2) = plt.subplots(1, 2, figsize=(11, 4.4))
 frag = d[d["population"] == "fragment"]["disagreement_mean_pw_rmsd"]
@@ -107,19 +110,18 @@ ax.set_xlim(min(deltas) * 1.5 - 0.2, max(deltas) * 1.5 + 0.3)
 plt.tight_layout(); plt.savefig(f"{OUT}/posthoc_anchoring.png", dpi=140); plt.close()
 print("wrote posthoc_anchoring.png")
 
-# ---------- Fig 4: per-model divergence from consensus (architecture clustering) ----------
-lg = pd.read_parquet("data/processed/posthoc/master_184_long.parquet")
+# ---------- Fig 4: per-model divergence from consensus (CORRECTED crystal-frame) ----------
+lg = pd.read_parquet("data/processed/posthoc/xmodel_long.parquet").rename(columns={"rmsd_to_medoid_cf": "rmsd_to_medoid"})
 dev = lg.dropna(subset=["rmsd_to_medoid"]).groupby("model")["rmsd_to_medoid"].median().sort_values()
 fig, ax = plt.subplots(figsize=(8.5, 4.6))
 yb = np.arange(len(dev))[::-1]
-# color: ESM/consensus cluster cyan, outliers pink
 cols = [PINK if v > 4 else (YELLOW if v > 2.4 else CYAN) for v in dev.values]
 ax.barh(yb, dev.values, color=cols, edgecolor=LINE, height=0.66)
 for yi, v in zip(yb, dev.values):
     ax.text(v + 0.1, yi, f"{v:.1f}A", va="center", color=INK, fontsize=9)
 ax.set_yticks(yb); ax.set_yticklabels(dev.index, fontsize=9.5)
-ax.set_xlabel("median ligand-pose distance from cross-model consensus (A)")
-ax.set_title("Models cluster by ARCHITECTURE, not truth - boltz/decaf are outliers",
+ax.set_xlabel("median ligand-pose distance from consensus (A), crystal frame")
+ax.set_title("Per-model distance from consensus (well-folded; boltz1/decaf excluded)",
              color=INK, fontsize=11.5, loc="left", pad=10)
 ax.text(0.98, 0.04, "consensus != correctness (no GT for the 184)", transform=ax.transAxes,
         ha="right", color=MUTED, fontsize=8.5, style="italic")
