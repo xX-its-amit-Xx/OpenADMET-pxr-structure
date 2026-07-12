@@ -153,10 +153,17 @@ function poolPDB(indices, elems, poses){
     for(let i=0;i<coords.length;i++){ s+=atomLine(serial,(elems[i]||'C'),ri+1,coords[i]); serial++; } });
   return s+"END\n";
 }
+function multiFramePDB(frames, elems){
+  let s="";
+  frames.forEach((f,fi)=>{ s+=`MODEL ${(fi+1).toString().padStart(8)}\n`;
+    for(let i=0;i<f.length;i++) s+=atomLine(i+1,(elems[i]||'C'),1,f[i]);
+    s+="ENDMDL\n"; });
+  return s;
+}
 
 // ======================= SCENE 1 : the video =======================
 let V, D, TL=[], PHASES=[], ci=0, playing=false, timer=null;
-let proteinModel, crystalModel, poolModel=null, moverModel=null;
+let proteinModel, crystalModel, poolModel=null, trajModel=null;
 const PHASELABEL={gen:"generation",pool:"the pool",oracle:"hidden near-native",select:"what confidence picked",refine:"refine to crystal",missed:"where we missed"};
 
 // The 6 worst atoms cluster into 3 chemically & structurally distinct miss-sites (8CH8/ULC).
@@ -212,7 +219,7 @@ function buildTimeline(){
   let prev=null;
   D.traj_frames.forEach((f,i)=>{ const r=frameRMSD(f); const dec = prev===null?true:r<=prev+1e-3;
     let ed=D.edits[D.edits.length-1]; for(const e of D.edits){ if(i>=e.start_frame&&i<=e.end_frame){ed=e;break;} }
-    TL.push({phase:'refine',coords:f,rmsd:r,dec,edit:ed.name,
+    TL.push({phase:'refine',fi:i,rmsd:r,dec,edit:ed.name,
       cap:`<b>Refining the pick toward the crystal.</b> ${ed.name} — each edit glows green if it lowers RMSD, red if it raises it.`,dur:75}); prev=r; });
   // F) where missed (end hold)
   TL.push({phase:'missed',coords:s.lig,rmsd:s.rmsd,cap:`<b>Where we missed.</b> Red spheres = atoms furthest from truth; yellow arrows point to where the crystal places them. The core sits in the wrong sub-pocket rotamer.`,dur:4000});
@@ -221,25 +228,28 @@ function buildTimeline(){
   TL.forEach((e,i)=>{ if(!(e.phase in seen)){ seen[e.phase]=i; PHASES.push({phase:e.phase,start:i,label:PHASELABEL[e.phase]});} });
 }
 
+// Persistent models are never re-added; each frame only RE-STYLES them. This kills the
+// add/remove churn that left ghost geometry ("residuals of a previous compound").
 function clearTransient(){
-  if(poolModel){V.removeModel(poolModel);poolModel=null;}
-  if(moverModel){V.removeModel(moverModel);moverModel=null;}
+  if(poolModel) poolModel.setStyle({},{});      // hide all pool residues
+  if(trajModel) trajModel.setStyle({},{});      // hide trajectory
   if(worstModel){ V.setHoverable({model:worstModel},false,()=>{},()=>{}); V.removeModel(worstModel); worstModel=null; }
   if(hoverLabel){ V.removeLabel(hoverLabel); hoverLabel=null; }
   V.removeAllShapes();
 }
-function setPool(upTo, mode){
-  if(upTo<0) return;
-  const idx=[]; for(let i=0;i<=upTo;i++) idx.push(i);
-  poolModel=V.addModel(poolPDB(idx,D.elems,D.poses),"pdb");
-  if(mode==='ghost'){ poolModel.setStyle({},{stick:{radius:.05,color:'#3b3e54'}}); }
-  else { poolModel.setStyle({},{stick:{radius:.09}});
-    idx.forEach((pi,ri)=>poolModel.setStyle({resi:ri+1},{stick:{radius:.09,color:rmsdColor(D.poses[pi].rmsd)}})); }
+// Style the persistent pool: poses 0..upTo shown as ghost/colour; pose `bright` shown bold; rest hidden.
+function stylePool(upTo, ghostMode, bright, brightColor){
+  const N=D.poses.length;
+  for(let i=0;i<N;i++){ const resi=i+1;
+    if(bright!=null && i===bright){
+      poolModel.setStyle({resi},{stick:{radius:.20,color:brightColor},sphere:{scale:.26,color:brightColor}});
+    } else if(i<=upTo){
+      const col = ghostMode==='color'? rmsdColor(D.poses[i].rmsd) : '#3b3e54';
+      poolModel.setStyle({resi},{stick:{radius: ghostMode==='color'?.09:.05, color:col}});
+    } else poolModel.setStyle({resi},{});
+  }
 }
-function setMover(coords,color,rad){
-  moverModel=V.addModel(ligPDB(coords,D.elems),"pdb");
-  moverModel.setStyle({},{stick:{radius:rad||.22,color:color},sphere:{scale:.26,color:color}});
-}
+function showTraj(fi,color){ V.setFrame(fi); trajModel.setStyle({},{stick:{radius:.22,color:color},sphere:{scale:.26,color:color}}); }
 function drawWorstSites(){
   const s=D.poses[D.selected_idx];
   // hoverable model: one HETATM per worst atom, resSeq = site index+1 so hover maps to a site
@@ -275,17 +285,17 @@ function render(i){
   // edit name + glow
   let editTxt='&nbsp;', glow='';
   switch(e.phase){
-    case 'gen': setPool(e.gi-1,'ghost'); setMover(e.coords,e.color,.20);
+    case 'gen': stylePool(e.gi-1,'ghost',e.gi,e.color);
       glow=`<span class="glow-tag g-neutral">pose ${e.gi+1} / ${D.poses.length}</span>`; break;
-    case 'pool': setPool(D.poses.length-1,'color');
+    case 'pool': stylePool(D.poses.length-1,'color',null,null);
       glow=`<span class="glow-tag g-neutral">spread ${D.stats.spread} A</span>`; break;
-    case 'oracle': setPool(D.poses.length-1,'ghost'); setMover(e.coords,'#50fa7b');
+    case 'oracle': stylePool(D.poses.length-1,'ghost',D.oracle_idx,'#50fa7b');
       editTxt='the pool already had it'; glow=`<span class="glow-tag g-green">${e.rmsd.toFixed(2)} A &middot; near-perfect</span>`; break;
-    case 'select': setPool(D.poses.length-1,'ghost'); setMover(e.coords,'#ff5a5f');
+    case 'select': stylePool(D.poses.length-1,'ghost',D.selected_idx,'#ff5a5f');
       editTxt='but confidence picked this'; glow=`<span class="glow-tag g-red">${e.rmsd.toFixed(2)} A &middot; the selection wall</span>`; break;
-    case 'refine': setMover(e.coords, e.dec?'#50fa7b':'#ff5a5f');
+    case 'refine': showTraj(e.fi, e.dec?'#50fa7b':'#ff5a5f');
       editTxt=e.edit; glow=`<span class="glow-tag ${e.dec?'g-green':'g-red'}">${e.dec?'▼ closer':'▲ farther'} ${e.rmsd.toFixed(2)} A</span>`; break;
-    case 'missed': setMover(e.coords,'#8892b0',.18); buildSitebox(); showSite(0); drawWorstSites();
+    case 'missed': stylePool(-1,'ghost',D.selected_idx,'#8892b0'); buildSitebox(); showSite(0); drawWorstSites();
       editTxt='hover a highlighted site → why we missed it'; glow='<span class="glow-tag g-red">3 sites · arrows point to the crystal</span>'; break;
   }
   el('sitebox').style.display = e.phase==='missed' ? 'block' : 'none';
@@ -321,6 +331,9 @@ fetch("anim_8CH8.json").then(r=>r.json()).then(d=>{
   proteinModel.setStyle({},{cartoon:{color:"#2b3a55",opacity:.55}});
   crystalModel=V.addModel(ligPDB(D.crystal_lig,D.elems),"pdb");
   crystalModel.setStyle({},{stick:{radius:.16,color:"#ffe66d"}});
+  // persistent, restyle-only models (no per-frame add/remove -> no ghosting)
+  poolModel=V.addModel(poolPDB(D.poses.map((_,i)=>i),D.elems,D.poses),"pdb"); poolModel.setStyle({},{});
+  trajModel=V.addModel(multiFramePDB(D.traj_frames,D.elems),"pdb"); trajModel.setStyle({},{});
   V.zoomTo({model:crystalModel}); V.zoom(0.55); V.render();
   el('stats').innerHTML=Object.entries({
     'holo':D.holo+' ('+D.ligcode+')','sampler':'Boltz-2 × '+D.stats.n_poses+' seeds',
