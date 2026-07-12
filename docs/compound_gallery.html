@@ -1,6 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PXR Post-Hoc — All 184 Compounds: Why We Missed</title>
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
 <style>
 :root{--bg:#0b0b12;--panel:#171821;--panel2:#202233;--ink:#f7f1db;--muted:#b8b2a2;
 --cyan:#00e5ff;--pink:#ff3d81;--green:#50fa7b;--yellow:#ffe66d;--orange:#ff9f1c;--red:#ff5a5f;--line:#3f4256}
@@ -63,11 +64,14 @@ padding:7px 10px;font-family:Consolas,monospace;font-size:12.5px}
 </style></head><body><div class="wrap">
 <span class="kicker">post-hoc // per-compound autopsy</span>
 <h1>All 184 compounds — why we missed, one at a time</h1>
-<p>Every ligand in the PXR structure track, with a <b>traceable</b> difficulty diagnosis: each statement is either
-a computed descriptor / cross-model measurement, or a reference to an <b>adversarially-verified research claim</b>
-(hover the citations). The 184 blind ligands have <b>no released crystal</b>, so "difficulty" is diagnosed from the
-cross-model pose pool (15 predictors) + ligand chemistry — <i>not</i> a ground-truth RMSD. For a GT-validated 3D
-pose journey against a real crystal, see the <a href="posthoc_animation.html">8CH8 deep-dive</a>.</p>
+<p>Every ligand in the PXR structure track. Click any card for a <b>traceable</b> diagnosis: an interactive <b>3D
+cross-model pose scatter</b> (each well-folded predictor's pose, superposed into the real PXR pocket frame), the
+confidence-vs-consensus selection gap, and a difficulty explanation where each statement is either a computed
+measurement or a reference to an <b>adversarially-verified research claim</b> (hover the citations). The 184 blind
+ligands have <b>no released crystal</b>, so the scatter shows cross-model <i>agreement</i>, not a ground-truth RMSD —
+for a GT-validated pose-vs-crystal journey see the <a href="posthoc_animation.html">8CH8 deep-dive</a>.
+Poses are aligned in a crystal frame (1ILH); <b>boltz1 and decaf are excluded</b> — their 184 exports fold ~20&nbsp;Å
+from the real LBD (the original all-model average had inflated disagreement ~2× by aligning to boltz1).</p>
 
 <div class="headline" id="headline"></div>
 
@@ -143,12 +147,16 @@ function modalHTML(c){
       <div class="stat">rotB <b>${d.rotb}</b></div><div class="stat">HBD/HBA <b>${d.hbd}/${d.hba}</b></div>
       <div class="stat">Fsp³ <b>${d.fsp3}</b></div><div class="stat">cLogP <b>${d.clogp}</b></div>${act}</div>
 
-    <h2>Cross-model pose journey — 15 predictors, one pocket</h2>
-    <p style="font-size:12px">Each model generated a pose; bar length = distance from the cross-model consensus (medoid). The
-    <span style="color:var(--red)">confidence pick</span> vs the <span style="color:var(--green)">consensus</span> is the selection problem made visible.</p>
+    <h2>Cross-model pose journey — ${x.n_wellfolded} predictors, one pocket</h2>
+    <p style="font-size:12px">Each well-folded model's ligand pose, superposed into the real PXR pocket frame (crystal 1ILH).
+    <span style="color:var(--green)">Consensus (medoid)</span> · <span style="color:var(--pink)">confidence pick</span> · others coloured by distance from consensus.
+    Hover a pose for its model. ${x.excluded&&x.excluded.length?`<span style="color:var(--muted)">Excluded as frame-incompatible: ${x.excluded.join(', ')}.</span>`:''}</p>
+    <div id="viewer3d" style="width:100%;height:340px;position:relative;background:#08080e;border:1px solid var(--line);border-radius:6px;margin:8px 0">
+      <div id="v3dtip" style="position:absolute;left:8px;bottom:8px;font-family:Consolas,monospace;font-size:11px;color:var(--muted);background:rgba(11,11,18,.8);padding:3px 8px;border-radius:4px;pointer-events:none"></div></div>
+    <p style="font-size:12px;margin-top:10px">Distance of each model's pose from the consensus:</p>
     ${journeyHTML(c)}
     <div class="callout">Confidence (pLDDT) would submit <b>${esc(x.plddt_pick)}</b>'s pose; the cross-model consensus is
-    <b>${esc(x.medoid_model)}</b>. ${x.selection_decoupled?'They <b>disagree</b> — the hallmark of the selection wall (true in 172/184 ligands): the pool likely holds a better pose than confidence selects.':'They agree here (only 12/184 do).'}
+    <b>${esc(x.medoid_model)}</b>. ${x.selection_decoupled?'They <b>disagree</b> — the hallmark of the selection wall (true in 171/184 ligands): the pool likely holds a better pose than confidence selects.':'They agree here (only 12/184 do).'}
     Mean ligand pLDDT ${x.mean_lig_plddt}; disagreement ${x.disagreement}Å (${Math.round(x.disagreement_pctile*100)}th percentile of the 184).</div>
 
     <h2>Why it's hard <span style="font-size:11px;color:var(--muted)">— data-derived tags, each cited</span></h2>
@@ -160,8 +168,38 @@ function modalHTML(c){
     ${c.has_crystal?'':'The 3D pose-vs-crystal journey (generation→selection→refinement→where-missed) is shown for GT holos in the <a href="posthoc_animation.html">deep-dive</a>.'}</div>`;
 }
 
-function openModal(sid){ const c=DATA.compounds[sid]; el('modal').innerHTML=modalHTML(c); el('ov').classList.add('on'); }
-function closeModal(){ el('ov').classList.remove('on'); }
+// ---- 3D cross-model scatter (crystal-frame poses) ----
+let POCKET_PDB=null, v3d=null;
+function ligPDBr(coords, elems, resi){
+  let s="";
+  for(let i=0;i<coords.length;i++){ const c=coords[i], e=(elems[i]||'C').toUpperCase();
+    s+=`HETATM${(i+1).toString().padStart(5)} ${e.padStart(2).padEnd(4)} LIG X${resi.toString().padStart(4)}    `
+      +`${c[0].toFixed(3).padStart(8)}${c[1].toFixed(3).padStart(8)}${c[2].toFixed(3).padStart(8)}  1.00  0.00          ${e.padStart(2)}\n`; }
+  return s;
+}
+function render3d(sid){
+  const host=el('viewer3d'); if(!host||!window.$3Dmol) return;
+  fetch('journey3d/'+sid+'.json').then(r=>r.json()).then(j=>{
+    if(!el('viewer3d')) return;   // modal closed before load
+    v3d=$3Dmol.createViewer(host,{backgroundColor:'#08080e'});
+    if(POCKET_PDB){ const pm=v3d.addModel(POCKET_PDB,'pdb');
+      pm.setStyle({},{cartoon:{color:'#243049',opacity:.35},stick:{radius:.04,color:'#3a3d52'}}); }
+    let pdb=""; const meta={};
+    j.models.forEach((m,i)=>{ pdb+=ligPDBr(m.lig,m.el,i+1); meta[i+1]=m; });
+    const lm=v3d.addModel(pdb+"END\n","pdb");
+    j.models.forEach((m,i)=>{ const resi=i+1;
+      const col=m.is_medoid?'#50fa7b': m.is_pick?'#ff3d81': fillColor(m.rmsd_to_medoid);
+      const rad=m.is_medoid?0.17: m.is_pick?0.16:0.10;
+      lm.setStyle({resi},{stick:{radius:rad,color:col},sphere:{scale:m.is_medoid||m.is_pick?0.28:0.16,color:col}}); });
+    v3d.setHoverable({model:lm},true,(atom)=>{ const m=meta[atom.resi]; if(!m)return;
+      el('v3dtip').innerHTML=`${m.model} · ${m.rmsd_to_medoid.toFixed(1)}Å from consensus${m.is_medoid?' (consensus)':m.is_pick?' (confidence pick)':''}`; },
+      ()=>{ if(el('v3dtip'))el('v3dtip').innerHTML=''; });
+    v3d.zoomTo({model:lm}); v3d.zoom(0.85); v3d.render();
+  }).catch(()=>{});
+}
+function openModal(sid){ const c=DATA.compounds[sid]; el('modal').innerHTML=modalHTML(c); el('ov').classList.add('on');
+  v3d=null; setTimeout(()=>render3d(sid),30); }
+function closeModal(){ el('ov').classList.remove('on'); v3d=null; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal(); });
 
 function severity(c){ return c.tags.reduce((s,t)=>s+t.sev,0); }
@@ -197,10 +235,11 @@ function boot(data){
   el('ftag').innerHTML='<option value="">any difficulty</option>'+Object.entries(tagLabels).map(([id,l])=>`<option value="${id}">${esc(l)}</option>`).join('');
   ['sort','fpop','ftag','search'].forEach(id=>el(id).addEventListener('input',apply));
   apply();
+  fetch('journey_pocket.pdb').then(r=>r.ok?r.text():null).then(t=>{POCKET_PDB=t;}).catch(()=>{});
 }
 
 // expose for tests
-if(typeof module!=='undefined'){ module.exports={cardHTML,modalHTML,journeyHTML,claimHTML,severity,boot,apply,openModal,closeModal,get C(){return C;},get DATA(){return DATA;}}; }
+if(typeof module!=='undefined'){ module.exports={cardHTML,modalHTML,journeyHTML,claimHTML,severity,boot,apply,openModal,closeModal,render3d,ligPDBr,get C(){return C;},get DATA(){return DATA;},set POCKET(v){POCKET_PDB=v;}}; }
 fetch("compound_analysis.json").then(r=>r.json()).then(boot);
 </script>
 </div></body></html>

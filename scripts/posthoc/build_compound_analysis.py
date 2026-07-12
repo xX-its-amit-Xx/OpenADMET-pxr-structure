@@ -20,7 +20,10 @@ import numpy as np
 import pandas as pd
 
 M = pd.read_parquet("data/processed/posthoc/master_184.parquet")
-ML = pd.read_parquet("data/processed/posthoc/master_184_long.parquet")
+# CORRECTED cross-model geometry in the crystal frame (boltz1-frame was contaminated).
+CF = pd.read_parquet("data/processed/posthoc/xmodel_crystalframe.parquet")
+CFL = pd.read_parquet("data/processed/posthoc/xmodel_long.parquet")
+M = M.merge(CF, on="structure", how="left")
 
 # ----------------------------------------------------------------------------- claims
 # Curated subset of the 24 adversarially-verified claims (3-vote), verbatim-short.
@@ -48,6 +51,7 @@ FINDINGS = {
  "protenix_rescue":  {"t": "Swapping Protenix-v2 onto only the deepest failure-tail ligands (8 of 184) was the single best lever we found (best submission prot_rescue8=0.564).", "s": "project_combinatorial_ladder"},
  "templating_lost":  {"t": "Crystal-templating, pocket-anchor priors, and naive ensembles all LOST vs best-of-N on the GT harness — anchor priors mislead on these weak binders.", "s": "project_geometric_signals_refuted; project_activity_structure_coupling"},
  "activity_weak":    {"t": "82/111 drug-like analogs are the activity-track set and all 24 measured are PXR-INACTIVE — the whole 184 is a weak-binder co-folding problem, so anchor-based priors mislead.", "s": "project_activity_structure_coupling"},
+ "frame_incompat":   {"t": "boltz1 and decaf's 184 protein exports fold ~20-23 A from the PXR crystal and the other models (boltz1 0/184 within 3 A) — they are frame-incompatible and excluded from the crystal-frame cross-model geometry. Aligning to boltz1 (as the original master table did) inflated the disagreement metric ~2x.", "s": "scripts/posthoc/build_xmodel_crystalframe.py"},
 }
 
 # retrospective levers (what could have reached the pose) — id -> text, keyed by tags
@@ -62,10 +66,10 @@ RETRO = {
 }
 
 # ----------------------------------------------------------------------------- tag rules
-# Percentile thresholds from the cohort
-DIS_P75 = M["disagreement_mean_pw_rmsd"].quantile(.75)
-DIS_P90 = M["disagreement_mean_pw_rmsd"].quantile(.90)
-CONS_P25 = M["consensus_frac"].quantile(.25)
+# Percentile thresholds from the cohort (crystal-frame, corrected)
+DIS_P75 = M["disagreement_cf"].quantile(.75)
+DIS_P90 = M["disagreement_cf"].quantile(.90)
+CONS_P25 = M["consensus_frac_cf"].quantile(.25)
 
 
 def polar_handles(r):
@@ -76,7 +80,7 @@ def tags_for(r, pose_ctx):
     """Return list of fired tags. Each tag: {id,label,why(data-grounded),claims,retro,sev}."""
     T = []
     mw, rotb, heavy, fsp3 = r["mw"], r["rotb"], r["heavy"], r["fsp3"]
-    dis, cons = r["disagreement_mean_pw_rmsd"], r["consensus_frac"]
+    dis, cons = r["disagreement_cf"], r["consensus_frac_cf"]
     ph = polar_handles(r)
 
     if rotb >= 5 or mw >= 400:
@@ -119,31 +123,33 @@ def tags_for(r, pose_ctx):
             why=f"A {int(heavy)}-heavy-atom PanDDA fragment. Too few contacts to pin a pose in a large promiscuous pocket, and the apo PanDDA site is dissimilar to the models' training complexes.",
             claims=["pocket_size","chai_degrade"], findings=["size_bottleneck"],
             retro=["more_sampling","better_selector"]))
-    # selection decoupling (confidence disagrees with consensus)
-    if pose_ctx.get("plddt_pick") and pose_ctx["plddt_pick"] != r["medoid_model"]:
+    # selection decoupling (confidence disagrees with consensus) — crystal-frame medoid
+    if pose_ctx.get("plddt_pick") and pose_ctx["plddt_pick"] != r["medoid_cf"]:
         T.append(dict(id="selection_risk", label="Confidence ≠ consensus", sev=3,
-            why=f"The pLDDT-preferred pose comes from {pose_ctx['plddt_pick']}, but the cross-model consensus (medoid) is {r['medoid_model']}. Confidence and consensus disagree — the hallmark of the selection wall (true in 172/184 ligands).",
+            why=f"The pLDDT-preferred pose comes from {pose_ctx['plddt_pick']}, but the cross-model consensus (medoid) is {r['medoid_cf']}. Confidence and consensus disagree — the hallmark of the selection wall (true in 171/184 ligands).",
             claims=["af3_orient"], findings=["plddt_noise","selection_wall"],
             retro=["better_selector"]))
     return T
 
 
 def main():
-    # per-structure pLDDT pick (which model's pose confidence would choose)
-    picks = ML.loc[ML.groupby("structure")["lig_plddt"].idxmax()][["structure", "model"]] \
-              .set_index("structure")["model"].to_dict()
-    dis_rank = M["disagreement_mean_pw_rmsd"].rank(pct=True)
+    # crystal-frame pLDDT pick (confidence's choice among well-folded models)
+    picks = dict(zip(CF["structure"], CF["plddt_pick_cf"]))
+    dis_rank = M["disagreement_cf"].rank(pct=True)
+    cfl_by = {sid: g for sid, g in CFL.groupby("structure")}
 
     out = {}
     for i, r in M.iterrows():
         sid = r["structure"]
         ctx = {"plddt_pick": picks.get(sid)}
         T = tags_for(r, ctx)
-        # per-pose journey summary from long table
-        sub = ML[ML.structure == sid].sort_values("rmsd_to_medoid")
-        journey = [dict(model=x.model, rmsd_to_medoid=round(float(x.rmsd_to_medoid), 2),
-                        lig_plddt=round(float(x.lig_plddt), 3), is_medoid=bool(x.is_medoid))
-                   for x in sub.itertuples()]
+        # per-model journey (crystal-frame distance from consensus)
+        sub = cfl_by.get(sid)
+        journey = [] if sub is None else [
+            dict(model=x.model, rmsd_to_medoid=round(float(x.rmsd_to_medoid_cf), 2),
+                 lig_plddt=None if pd.isna(x.lig_plddt) else round(float(x.lig_plddt), 3),
+                 is_medoid=bool(x.is_medoid), is_pick=bool(x.is_pick), prot_rmsd=round(float(x.prot_rmsd), 2))
+            for x in sub.sort_values("rmsd_to_medoid_cf").itertuples()]
         retro_ids, claim_ids, finding_ids = [], [], []
         for t in T:
             retro_ids += t.get("retro", []); claim_ids += t.get("claims", []); finding_ids += t.get("findings", [])
@@ -156,12 +162,15 @@ def main():
                       fsp3=round(float(r.fsp3),2), narom=int(r.narom), nrings=int(r.nrings), nS=int(r.nS)),
             activity=dict(pEC50=None if pd.isna(r.pEC50) else round(float(r.pEC50),2),
                           emax=None if pd.isna(r.emax) else round(float(r.emax),1)),
-            xmodel=dict(disagreement=round(float(r.disagreement_mean_pw_rmsd),2),
+            xmodel=dict(disagreement=round(float(r.disagreement_cf),2),
                         disagreement_pctile=round(float(dis_rank[i]),2),
-                        consensus_frac=round(float(r.consensus_frac),2),
-                        medoid_model=r.medoid_model, plddt_pick=picks.get(sid),
-                        selection_decoupled=bool(picks.get(sid) != r.medoid_model),
-                        mean_lig_plddt=round(float(r.mean_lig_plddt),1), n_models=int(r.n_models)),
+                        consensus_frac=round(float(r.consensus_frac_cf),2),
+                        medoid_model=r.medoid_cf, plddt_pick=picks.get(sid),
+                        selection_decoupled=bool(r.selection_decoupled_cf),
+                        mean_lig_plddt=round(float(r.mean_lig_plddt),1),
+                        n_wellfolded=int(r.n_wellfolded),
+                        excluded=(r.excluded.split(";") if isinstance(r.excluded,str) and r.excluded else []),
+                        frame="crystal (1ILH); boltz1/decaf excluded as frame-incompatible"),
             tags=[{k:t[k] for k in ("id","label","sev","why","claims","findings")} for t in T],
             retrospective=[{"id":rid,"text":RETRO[rid]} for rid in retro_ids],
             journey=journey,
