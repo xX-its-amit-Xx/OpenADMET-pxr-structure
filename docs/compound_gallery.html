@@ -1,0 +1,206 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PXR Post-Hoc — All 184 Compounds: Why We Missed</title>
+<style>
+:root{--bg:#0b0b12;--panel:#171821;--panel2:#202233;--ink:#f7f1db;--muted:#b8b2a2;
+--cyan:#00e5ff;--pink:#ff3d81;--green:#50fa7b;--yellow:#ffe66d;--orange:#ff9f1c;--red:#ff5a5f;--line:#3f4256}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",sans-serif;
+background-image:radial-gradient(circle at 1px 1px,#15161f 1px,transparent 0);background-size:18px 18px}
+.wrap{max-width:1220px;margin:0 auto;padding:22px 18px 80px}
+.kicker{font-family:Consolas,monospace;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;font-size:12px}
+h1{font-size:26px;margin:6px 0 4px}h2{font-size:18px;margin:22px 0 8px}
+p{color:var(--muted);line-height:1.55;max-width:900px}
+a{color:var(--cyan)}
+.headline{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+.hcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:150px}
+.hcard b{font-size:26px;font-family:Consolas,monospace;color:var(--cyan);display:block}
+.hcard span{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 6px;position:sticky;top:0;
+background:rgba(11,11,18,.92);padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
+select,input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:5px;
+padding:7px 10px;font-family:Consolas,monospace;font-size:12.5px}
+.count{font-family:Consolas,monospace;color:var(--muted);font-size:12px;margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .12s,transform .12s}
+.card:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.card .sid{font-family:Consolas,monospace;font-size:13px;color:var(--ink);font-weight:bold}
+.card .name{font-size:11px;color:var(--muted);margin:2px 0 8px;height:28px;overflow:hidden}
+.badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);margin-right:4px}
+.b-frag{color:var(--yellow);border-color:var(--yellow)}.b-drug{color:var(--cyan);border-color:var(--cyan)}
+.metrics{display:flex;gap:10px;font-family:Consolas,monospace;font-size:11px;color:var(--muted);margin:6px 0}
+.metrics b{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.chip{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid}
+.sev3{color:var(--red);border-color:var(--red);background:rgba(255,90,95,.08)}
+.sev2{color:var(--orange);border-color:var(--orange);background:rgba(255,159,28,.08)}
+.sev1{color:var(--muted);border-color:var(--line)}
+.decoupled{color:var(--pink);border-color:var(--pink);background:rgba(255,61,129,.08)}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(6,6,12,.82);display:none;align-items:flex-start;justify-content:center;z-index:20;overflow:auto;padding:30px 16px}
+.ov.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:760px;width:100%;padding:22px}
+.modal h3{margin:0;font-size:20px;font-family:Consolas,monospace}
+.smiles{font-family:Consolas,monospace;font-size:11px;color:var(--muted);word-break:break-all;margin:4px 0 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:Consolas,monospace;font-size:12px}
+.stat b{color:var(--cyan)}
+.jbar{display:flex;align-items:center;gap:8px;margin:3px 0;font-family:Consolas,monospace;font-size:11.5px}
+.jbar .mn{width:96px;color:var(--muted);text-align:right;flex:none}
+.jbar .track{flex:1;height:12px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.jbar .fill{height:100%}
+.jbar .val{width:52px;flex:none;color:var(--muted)}
+.jbar.medoid .mn{color:var(--green)}.jbar.pick .mn{color:var(--red)}
+.callout{background:rgba(255,61,129,.07);border:1px solid var(--pink);border-radius:6px;padding:10px 12px;font-size:13px;margin:12px 0}
+.tag{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:8px 0}
+.tag .lab{font-weight:bold;font-size:13px}
+.tag .why{font-size:12.5px;color:var(--ink);margin:4px 0;line-height:1.5}
+.cite{font-size:11px;color:var(--muted);border-left:2px solid var(--line);padding-left:8px;margin:5px 0;line-height:1.45}
+.cite .src{color:var(--cyan);font-style:italic}
+.retro li{font-size:12.5px;color:var(--ink);line-height:1.5;margin:4px 0}
+.close{float:right;cursor:pointer;color:var(--muted);font-size:22px;line-height:1}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+</style></head><body><div class="wrap">
+<span class="kicker">post-hoc // per-compound autopsy</span>
+<h1>All 184 compounds — why we missed, one at a time</h1>
+<p>Every ligand in the PXR structure track, with a <b>traceable</b> difficulty diagnosis: each statement is either
+a computed descriptor / cross-model measurement, or a reference to an <b>adversarially-verified research claim</b>
+(hover the citations). The 184 blind ligands have <b>no released crystal</b>, so "difficulty" is diagnosed from the
+cross-model pose pool (15 predictors) + ligand chemistry — <i>not</i> a ground-truth RMSD. For a GT-validated 3D
+pose journey against a real crystal, see the <a href="posthoc_animation.html">8CH8 deep-dive</a>.</p>
+
+<div class="headline" id="headline"></div>
+
+<div class="toolbar">
+  <label style="font-size:12px;color:var(--muted)">sort</label>
+  <select id="sort">
+    <option value="disagreement">Most model disagreement</option>
+    <option value="consensus">Least consensus</option>
+    <option value="severity">Most difficulty tags</option>
+    <option value="mw">Largest (MW)</option>
+    <option value="decoupled">Confidence≠consensus first</option>
+    <option value="sid">By ID</option>
+  </select>
+  <select id="fpop"><option value="">all populations</option><option value="fragment">fragments</option><option value="drug_like">drug-like</option></select>
+  <select id="ftag"><option value="">any difficulty</option></select>
+  <input id="search" placeholder="search id / name…" size="16">
+  <span class="count" id="count"></span>
+</div>
+<div class="grid" id="grid"></div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+
+<script>
+let DATA=null, C=[];
+const el=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const sevColor=s=>s===3?'var(--red)':s===2?'var(--orange)':'var(--muted)';
+
+function fillColor(r){ return r<2?'#50fa7b': r<4?'#a6f56b': r<6?'#ffe66d': r<8?'#ff9f1c':'#ff5a5f'; }
+
+function cardHTML(c){
+  const x=c.xmodel, chips=c.tags.slice(0,3).map(t=>`<span class="chip sev${t.sev}">${esc(t.label)}</span>`).join('');
+  return `<div class="card" onclick="openModal('${c.sid}')">
+    <div class="sid">${esc(c.sid)}</div>
+    <div class="name">${esc(c.name!==c.sid?c.name:'')}</div>
+    <span class="badge ${c.population==='fragment'?'b-frag':'b-drug'}">${c.population==='fragment'?'fragment':'drug-like'}</span>
+    ${x.selection_decoupled?'<span class="badge decoupled">conf≠consensus</span>':''}
+    <div class="metrics"><span>disag <b>${x.disagreement}Å</b></span><span>cons <b>${Math.round(x.consensus_frac*100)}%</b></span><span>MW <b>${c.desc.mw}</b></span></div>
+    <div class="chips">${chips}</div></div>`;
+}
+
+function journeyHTML(c){
+  const maxr=Math.max(2,...c.journey.map(j=>j.rmsd_to_medoid||0));
+  const pick=c.xmodel.plddt_pick;
+  return c.journey.map(j=>{
+    const r=j.rmsd_to_medoid==null?0:j.rmsd_to_medoid;
+    const cls=(j.is_medoid?' medoid':'')+(j.model===pick?' pick':'');
+    const tag=j.is_medoid?' ◄ consensus':(j.model===pick?' ◄ confidence pick':'');
+    return `<div class="jbar${cls}"><span class="mn">${esc(j.model)}</span>
+      <span class="track"><span class="fill" style="width:${Math.max(3,r/maxr*100)}%;background:${fillColor(r)}"></span></span>
+      <span class="val">${r.toFixed(1)}Å${tag}</span></div>`;
+  }).join('');
+}
+
+function claimHTML(ids, store){
+  return ids.map(id=>{ const c=store[id]; if(!c)return '';
+    return `<div class="cite">${esc(c.t)} <span class="src">— ${esc(c.s)}</span></div>`; }).join('');
+}
+
+function modalHTML(c){
+  const x=c.xmodel, a=c.activity, d=c.desc;
+  const tags=c.tags.map(t=>`<div class="tag"><div class="lab" style="color:${sevColor(t.sev)}">▸ ${esc(t.label)}</div>
+    <div class="why">${esc(t.why)}</div>${claimHTML(t.claims,DATA.claims)}${claimHTML(t.findings,DATA.findings)}</div>`).join('');
+  const retro=c.retrospective.map(r=>`<li>${esc(r.text)}</li>`).join('');
+  const act=a.pEC50!=null?`<div class="stat">pEC50 <b>${a.pEC50}</b></div>`:'<div class="stat" style="color:var(--muted)">PXR-inactive / not measured</div>';
+  return `<span class="close" onclick="closeModal()">✕</span>
+    <h3>${esc(c.sid)}</h3>
+    <div class="smiles">${esc(c.name!==c.sid?c.name+'  ·  ':'')}${esc(c.smiles)}</div>
+    <span class="badge ${c.population==='fragment'?'b-frag':'b-drug'}">${c.population}</span>
+    ${c.series?`<span class="badge">series ${esc(c.series)}</span>`:''}
+    <div class="row">
+      <div class="stat">MW <b>${d.mw}</b></div><div class="stat">heavy <b>${d.heavy}</b></div>
+      <div class="stat">rotB <b>${d.rotb}</b></div><div class="stat">HBD/HBA <b>${d.hbd}/${d.hba}</b></div>
+      <div class="stat">Fsp³ <b>${d.fsp3}</b></div><div class="stat">cLogP <b>${d.clogp}</b></div>${act}</div>
+
+    <h2>Cross-model pose journey — 15 predictors, one pocket</h2>
+    <p style="font-size:12px">Each model generated a pose; bar length = distance from the cross-model consensus (medoid). The
+    <span style="color:var(--red)">confidence pick</span> vs the <span style="color:var(--green)">consensus</span> is the selection problem made visible.</p>
+    ${journeyHTML(c)}
+    <div class="callout">Confidence (pLDDT) would submit <b>${esc(x.plddt_pick)}</b>'s pose; the cross-model consensus is
+    <b>${esc(x.medoid_model)}</b>. ${x.selection_decoupled?'They <b>disagree</b> — the hallmark of the selection wall (true in 172/184 ligands): the pool likely holds a better pose than confidence selects.':'They agree here (only 12/184 do).'}
+    Mean ligand pLDDT ${x.mean_lig_plddt}; disagreement ${x.disagreement}Å (${Math.round(x.disagreement_pctile*100)}th percentile of the 184).</div>
+
+    <h2>Why it's hard <span style="font-size:11px;color:var(--muted)">— data-derived tags, each cited</span></h2>
+    ${tags}
+    <h2>Could anything have reached the pose?</h2>
+    <ul class="retro">${retro}</ul>
+    <div class="note">No crystal exists for this blind ligand — the diagnosis above is from ligand chemistry + the
+    15-model pose pool, cited to verified literature. It is a difficulty explanation, not a ground-truth error.
+    ${c.has_crystal?'':'The 3D pose-vs-crystal journey (generation→selection→refinement→where-missed) is shown for GT holos in the <a href="posthoc_animation.html">deep-dive</a>.'}</div>`;
+}
+
+function openModal(sid){ const c=DATA.compounds[sid]; el('modal').innerHTML=modalHTML(c); el('ov').classList.add('on'); }
+function closeModal(){ el('ov').classList.remove('on'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal(); });
+
+function severity(c){ return c.tags.reduce((s,t)=>s+t.sev,0); }
+function apply(){
+  const s=el('sort').value, fp=el('fpop').value, ft=el('ftag').value, q=el('search').value.toLowerCase();
+  let list=C.filter(c=>(!fp||c.population===fp)&&(!ft||c.tags.some(t=>t.id===ft))
+    &&(!q||c.sid.toLowerCase().includes(q)||(c.name||'').toLowerCase().includes(q)));
+  const cmp={ disagreement:(a,b)=>b.xmodel.disagreement-a.xmodel.disagreement,
+    consensus:(a,b)=>a.xmodel.consensus_frac-b.xmodel.consensus_frac,
+    severity:(a,b)=>severity(b)-severity(a),
+    mw:(a,b)=>b.desc.mw-a.desc.mw,
+    decoupled:(a,b)=>(b.xmodel.selection_decoupled-a.xmodel.selection_decoupled)||(b.xmodel.disagreement-a.xmodel.disagreement),
+    sid:(a,b)=>a.sid.localeCompare(b.sid) };
+  list.sort(cmp[s]);
+  el('grid').innerHTML=list.map(cardHTML).join('');
+  el('count').textContent=`${list.length} / ${C.length} compounds`;
+}
+
+function boot(data){
+  DATA=data; C=Object.values(data.compounds);
+  // headline stats
+  const dec=C.filter(c=>c.xmodel.selection_decoupled).length;
+  const frag=C.filter(c=>c.population==='fragment').length;
+  const hi=C.filter(c=>c.xmodel.disagreement>=data.thresholds.dis_p90).length;
+  el('headline').innerHTML=[
+    [C.length,'compounds (73 fragments · 111 drug-like)'],
+    [dec+' / '+C.length,'confidence ≠ consensus (the selection wall)'],
+    [hi,'top-decile model disagreement (≥'+data.thresholds.dis_p90+'Å)'],
+    [Object.keys(data.claims).length+Object.keys(data.findings).length,'cited claims backing the diagnoses'],
+  ].map(([b,s])=>`<div class="hcard"><b>${b}</b><span>${s}</span></div>`).join('');
+  // tag filter options
+  const tagLabels={}; C.forEach(c=>c.tags.forEach(t=>tagLabels[t.id]=t.label));
+  el('ftag').innerHTML='<option value="">any difficulty</option>'+Object.entries(tagLabels).map(([id,l])=>`<option value="${id}">${esc(l)}</option>`).join('');
+  ['sort','fpop','ftag','search'].forEach(id=>el(id).addEventListener('input',apply));
+  apply();
+}
+
+// expose for tests
+if(typeof module!=='undefined'){ module.exports={cardHTML,modalHTML,journeyHTML,claimHTML,severity,boot,apply,openModal,closeModal,get C(){return C;},get DATA(){return DATA;}}; }
+fetch("compound_analysis.json").then(r=>r.json()).then(boot);
+</script>
+</div></body></html>
